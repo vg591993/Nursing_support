@@ -335,7 +335,7 @@ const W000_Constants = {
     Leave_of_employee: 'Leave_of_employee',
     morning_shift_rejection_after_night_off: 'morning_shift_rejection_after_night_off',
     AdditionalWaightageOnRequestedEmployeeScore: "AdditionalWaightageOnRequestedEmployeeScore",
-    more_than3_wo :"more_than3_wo"
+    more_than3_wo: "more_than3_wo"
 }
 
 function getWaight(Code) {
@@ -386,10 +386,10 @@ function getWaight(Code) {
 
         case W000_Constants.more_than3_wo: {
             //positive waightage
-            return 12000;
+            return 80000;
         }
 
-        
+
     }
 }
 
@@ -481,9 +481,8 @@ const E004_EmployeRequests = {
     skills: 'skills',
     unit_id: 'unit_id',
     ID: 'ID',
-
-
-    dateShiftList: 'dateShiftList',
+    //shift_number = {1,2,3}
+    dateShiftList: 'dateShiftList', // YYYYMMDD@{shift_number},20210501@1,20210502@3,20210501@1......
 
 
     TimeStamp: 'TimeStamp',
@@ -494,7 +493,7 @@ const E005_Unit = {
     E005_Unit: 'E005_Unit',
     name: 'name',
     shift_duration_map: 'shift_duration_map',
-    shift_starting_time : 'shift_starting_time',
+    shift_starting_time: 'shift_starting_time',
 
     hospitan_id: 'hospitan_id',
     supervisor_employee_id: 'supervisor_employee_id',
@@ -585,10 +584,29 @@ function getListOfEmployees(number_of_senior_employees, number_of_junior_emp, nu
 
     list_of_emp[0] = emp_object;
 
+    ID = "1@" + unit_type;
+    emp_object = new Map();
+    emp_object.set(E001_Employee.name, "nam1:1");
+    emp_object.set(E001_Employee.skills, skills);
+    emp_object.set(E001_Employee.exp_year, exp_year);
+    emp_object.set(E001_Employee.unit_id, unit_type);
+    emp_object.set(E001_Employee.shift_type, shift_type);
+    emp_object.set(E001_Employee.connection_type, connection_type);
+    emp_object.set(E001_Employee.connected_Employee_id, connected_Employee_id);
+    emp_object.set(E001_Employee.priority, priority);
+    emp_object.set(E001_Employee.fixed_working_hour, fixed_working_hour);
+    emp_object.set(E001_Employee.remaining_working_hour, remaining_working_hour);
+    emp_object.set(E001_Employee.emp_type, emp_type);
+    emp_object.set(E001_Employee.user_id, user_id);
+    emp_object.set(E001_Employee.hospital_id, hospital_id);
+    emp_object.set(E001_Employee.ID, ID);
+    emp_object.set(E001_Employee.TimeStamp, TimeStamp);
+    emp_object.set(E001_Employee.EditFlagRow, EditFlagRow);
+
+    list_of_emp[1] = emp_object;
 
 
-
-    for (var i = 1; i < number_of_senior_employees; i++) {
+    for (var i = 2; i < number_of_senior_employees; i++) {
         ////console.log('employee: '+i);
 
         var emp_name = 'name:' + i;
@@ -1208,787 +1226,281 @@ function getRandomRequests(starting_date, ending_date, employee) {
 
 
 exports.request = functions
-.region('asia-south1').https.onRequest((req, res) => {
+    .region('asia-northeast3').https.onRequest((req, res) => {
 
-    if (req.method === 'PUT') {
-        return res.status(403).send('Forbidden!');
-    }
-
-
-
-    // //console.log('request query: ');
-    // //console.log(req.query);
-
-
-    var u = req.query.u;
-    var s = req.query.s;
-    var e = req.query.e;
-    var hospital_ID_path = "/Nursing/" + req.query.h + "/";
-
-    // //console.log('u: ' + u);
-    // //console.log('s: ' + s);
-    // //console.log('e: ' + e);
-
-
-
-    var style_title_head1 =
-        "<head>" +
-        "<style>" +
-        "table {" +
-        " width:100%;" +
-        "}" +
-        "table, th, td {" +
-        "border: 1px solid black;" +
-        "border-collapse: collapse;" +
-        "}" +
-        "th, td {" +
-        "padding: 15px;" +
-        "text-align: left;" +
-        "}" +
-        "#t01 tr:nth-child(even) {" +
-        "background-color: #eee;" +
-        "}" +
-        "#t01 tr:nth-child(odd) {" +
-        "background-color: #fff;" +
-        "}" +
-        "#t01 th {" +
-        "background-color: #212F3D;" +
-        "color: white;" +
-        "}" +
-
-        "#C1 {" +
-        "background-color: #3498DB;" +
-        "color: white;" +
-        "}" +
-
-        "#C2 {" +
-        "background-color: #28B463;" +
-        "color: white;" +
-        "}" +
-
-        "#C3 {" +
-        "background-color: #BA4A00;" +
-        "color: white;" +
-        "}" +
-
-        "#C12 {" +
-        "background-color: #8E44AD;" +
-        "color: white;" +
-        "}" +
-
-        "#NO {" +
-        "background-color: #34495E;" +
-        "color: white;" +
-        "}" +
-
-        "#WO {" +
-        "background-color: #DAF7A6;" +
-        "color: #34495E;" +
-        "}" +
-
-        "</style>" +
-        "</head>" +
-        "<body>" +
-
-        "<h2>Roster Table</h2>" +
-        "<table id=\"t01\">";
-
-
-
-
-
-    // //console.log('u: ' + u);
-    // //console.log('s: ' + s);
-    // //console.log('e: ' + e);
-
-    if (s.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-    if (e.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    if (parseInt(s) > parseInt(e)) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    try {
-
-        let strting_year = parseInt(s.substring(0, 4));
-        let starting_month = parseInt(s.substring(4, 6));
-
-        let ending_year = parseInt(e.substring(0, 4));
-        let ending_month = parseInt(e.substring(4, 6));
-
-        if (strting_year != ending_year) {
+        if (req.method === 'PUT') {
             return res.status(403).send('Forbidden!');
         }
 
-        if (starting_month > ending_month) {
+
+
+        // //console.log('request query: ');
+        // //console.log(req.query);
+
+
+        var u = req.query.u;
+        var s = req.query.s;
+        var e = req.query.e;
+        var hospital_ID_path = "/Nursing/" + req.query.h + "/";
+
+        // //console.log('u: ' + u);
+        // //console.log('s: ' + s);
+        // //console.log('e: ' + e);
+
+
+
+        var style_title_head1 =
+            "<head>" +
+            "<style>" +
+            "table {" +
+            " width:100%;" +
+            "}" +
+            "table, th, td {" +
+            "border: 1px solid black;" +
+            "border-collapse: collapse;" +
+            "}" +
+            "th, td {" +
+            "padding: 15px;" +
+            "text-align: left;" +
+            "}" +
+            "#t01 tr:nth-child(even) {" +
+            "background-color: #eee;" +
+            "}" +
+            "#t01 tr:nth-child(odd) {" +
+            "background-color: #fff;" +
+            "}" +
+            "#t01 th {" +
+            "background-color: #212F3D;" +
+            "color: white;" +
+            "}" +
+
+            "#C1 {" +
+            "background-color: #3498DB;" +
+            "color: white;" +
+            "}" +
+
+            "#C2 {" +
+            "background-color: #28B463;" +
+            "color: white;" +
+            "}" +
+
+            "#C3 {" +
+            "background-color: #BA4A00;" +
+            "color: white;" +
+            "}" +
+
+            "#C12 {" +
+            "background-color: #8E44AD;" +
+            "color: white;" +
+            "}" +
+
+            "#NO {" +
+            "background-color: #34495E;" +
+            "color: white;" +
+            "}" +
+
+            "#WO {" +
+            "background-color: #DAF7A6;" +
+            "color: #34495E;" +
+            "}" +
+
+            "</style>" +
+            "</head>" +
+            "<body>" +
+
+            "<h2>Roster Table</h2>" +
+            "<table id=\"t01\">";
+
+
+
+
+
+        // //console.log('u: ' + u);
+        // //console.log('s: ' + s);
+        // //console.log('e: ' + e);
+
+        if (s.length != 8) {
+            return res.status(403).send('Forbidden!');
+        }
+        if (e.length != 8) {
             return res.status(403).send('Forbidden!');
         }
 
-        if ((ending_month - starting_month) > 1) {
+        if (parseInt(s) > parseInt(e)) {
             return res.status(403).send('Forbidden!');
         }
 
-    } catch (err) {
-        //console.log(err);
-    }
+        try {
 
-    let starting_date_d = new Date();
+            let strting_year = parseInt(s.substring(0, 4));
+            let starting_month = parseInt(s.substring(4, 6));
 
-    // //console.log('year: ' + starting_date.substring(0, 4));
-    // //console.log('month: ' + starting_date.substring(4, 6));
-    // //console.log('date: ' + starting_date.substring(6, 8));
+            let ending_year = parseInt(e.substring(0, 4));
+            let ending_month = parseInt(e.substring(4, 6));
 
-    starting_date_d.setFullYear(s.substring(0, 4));
-    starting_date_d.setMonth((s.substring(4, 6) - 1));
-    starting_date_d.setDate(s.substring(6, 8));
-
-
-    let date1 = '';
-
-    let day = starting_date_d.getDate() - 1;
-    starting_date_d.setDate(day);
-
-    let date_list = [];
-    let date_list_int = [];
-
-    let day_comp = 0;
-
-    for (let i = 0; (day_comp < parseInt(e)); i++) {
-
-        let day = starting_date_d.getDate() + 1;
-        starting_date_d.setDate(day);
-        day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
-        date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
-        // //console.log(date1);
-        date_list.push(date1);
-        date_list_int.push(day_comp);
-    }
-
-    ////console.log(date_list);
-
-
-    var table_column_name2 = "<tr>" +
-        "<th>Employee ID</th>";
-    for (let d of date_list) {
-        table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
-    }
-
-    table_column_name2 = table_column_name2 + "</tr>";
-
-
-
-    var emp_data3 =
-        "<tr>" +
-        "<td>Jill</td>" +
-        "<td>Smith</td>" +
-        "<td>50</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>Eve</td>" +
-        "<td>Jackson</td>" +
-        "<td>94</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>John</td>" +
-        "<td>Doe</td>" +
-        "<td>80</td>" +
-        "</tr>";
-
-    var data_tale4 =
-        "</table>" +
-        "</body>" +
-        "</html>";
-
-
-
-    //style_title+table_content
-    //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
-
-
-    let emp_value = getEmployeeRequest(hospital_ID_path, s, e, u);
-
-
-    let employee_stringWork = new Map();
-
-    emp_value.then((value) => {
-
-
-        ////console.log(value);
-        ////console.log(" aa giyaa");
-
-        //table_column_name2 = '';
-
-        let map_of_dates = new Set();
-
-        for (let d of date_list_int) {
-
-            for (let [emp_id, date_work] of value) {
-                if (date_work.has(d)) {
-
-                    let str = '';
-                    let id = 'C';
-                    let isFirst = true;
-                    for (let s of date_work.get(d)) {
-
-                        if (isFirst) {
-                            str = s;
-                            id += s.split(':')[1];
-
-                            isFirst = false;
-                        } else {
-                            str = str + ':' + s;
-                            id += s.split(':')[1];
-                        }
-
-                        if (id == 'Cundefined') {
-                            id = s;
-                        }
-
-                    }
-                    let work = "<td id =\"" + id + "\">" + str + "</td>";
-
-                    if (employee_stringWork.has(emp_id)) {
-                        let emp_str = employee_stringWork.get(emp_id);
-                        work = emp_str + work
-                    }
-                    employee_stringWork.set(emp_id, work);
-
-                } else {
-                    let work = "<td>UND</td>";
-                    if (employee_stringWork.has(emp_id)) {
-                        let emp_str = employee_stringWork.get(emp_id);
-                        work = emp_str + work
-                    }
-                    employee_stringWork.set(emp_id, work);
-                }
+            if (strting_year != ending_year) {
+                return res.status(403).send('Forbidden!');
             }
+
+            if (starting_month > ending_month) {
+                return res.status(403).send('Forbidden!');
+            }
+
+            if ((ending_month - starting_month) > 1) {
+                return res.status(403).send('Forbidden!');
+            }
+
+        } catch (err) {
+            //console.log(err);
         }
 
+        let starting_date_d = new Date();
 
-        emp_data3 = '';
-        for (let [emp_id, date_work] of employee_stringWork) {
+        // //console.log('year: ' + starting_date.substring(0, 4));
+        // //console.log('month: ' + starting_date.substring(4, 6));
+        // //console.log('date: ' + starting_date.substring(6, 8));
 
-            emp_data3 = emp_data3 + "<tr>" +
-                "<td>" + emp_id + "</td>" +
-                date_work +
-                "</tr>";
-
-        }
-
-
-        ////console.log(emp_data3);
-
-        res.send(style_title_head1 + table_column_name2 + emp_data3 + data_tale4);
-
-        return;
-    }).catch((err) => {
-        console.log(err);
-    })
+        starting_date_d.setFullYear(s.substring(0, 4));
+        starting_date_d.setMonth((s.substring(4, 6) - 1));
+        starting_date_d.setDate(s.substring(6, 8));
 
 
-});
+        let date1 = '';
 
-exports.requestCheck = functions
-.region('asia-south1').https.onRequest((req, res) => {
-
-    if (req.method === 'PUT') {
-        return res.status(403).send('Forbidden!');
-    }
-
-
-
-    // //console.log('request query: ');
-    // //console.log(req.query);
-
-
-    var r = req.query.r; // R = roaster; S = Shift
-    var u = req.query.u;
-    var s = req.query.s;
-    var e = req.query.e;
-    var hospital_ID_path = "/Nursing/" + req.query.h + "/";
-
-    console.log('u: ' + u);
-    console.log('s: ' + s);
-    console.log('e: ' + e);
-    console.log('h: ' + hospital_ID_path);
-
-
-
-
-    var style_title_head1 =
-        "<head>" +
-        "<style>" +
-        "table {" +
-        " width:100%;" +
-        "}" +
-        "table, th, td {" +
-        "border: 1px solid black;" +
-        "border-collapse: collapse;" +
-        "}" +
-        "th, td {" +
-        "padding: 15px;" +
-        "text-align: left;" +
-        "}" +
-        "#t01 tr:nth-child(even) {" +
-        "background-color: #eee;" +
-        "}" +
-        "#t01 tr:nth-child(odd) {" +
-        "background-color: #fff;" +
-        "}" +
-        "#t01 th {" +
-        "background-color: #212F3D;" +
-        "color: white;" +
-        "}" +
-
-        "#C1 {" +
-        "background-color: #3498DB;" +
-        "color: white;" +
-        "}" +
-
-        "#C2 {" +
-        "background-color: #28B463;" +
-        "color: white;" +
-        "}" +
-
-        "#C3 {" +
-        "background-color: #BA4A00;" +
-        "color: white;" +
-        "}" +
-
-        "#C12 {" +
-        "background-color: #8E44AD;" +
-        "color: white;" +
-        "}" +
-
-        "#NO {" +
-        "background-color: #34495E;" +
-        "color: white;" +
-        "}" +
-
-        "#WO {" +
-        "background-color: #DAF7A6;" +
-        "color: #34495E;" +
-        "}" +
-
-        "#CO {" +
-        "background-color: #34495E;" +
-        "color: #F24D1B;" +
-        "}" +
-
-        "#PL {" +
-        "background-color: #A1CAF1;" +
-        "color: #0B12EB;" +
-        "}" +
-
-        "#EL {" +
-        "background-color: #879588;" +
-        "color: white;" +
-        "}" +
-
-        "</style>" +
-        "</head>" +
-        "<body>" +
-
-        "<h2>Roster Table</h2>" +
-        "<table id=\"t01\">";
-
-
-
-
-    // //console.log('u: ' + u);
-    // //console.log('s: ' + s);
-    // //console.log('e: ' + e);
-
-    if (s.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-    if (e.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    if (parseInt(s) > parseInt(e)) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    try {
-
-        let strting_year = parseInt(s.substring(0, 4));
-        let starting_month = parseInt(s.substring(4, 6));
-
-        let ending_year = parseInt(e.substring(0, 4));
-        let ending_month = parseInt(e.substring(4, 6));
-
-        if (strting_year != ending_year) {
-            return res.status(403).send('Forbidden!');
-        }
-
-        if (starting_month > ending_month) {
-            return res.status(403).send('Forbidden!');
-        }
-
-        if ((ending_month - starting_month) > 1) {
-            return res.status(403).send('Forbidden!');
-        }
-
-    } catch (err) {
-        console.log(err);
-    }
-
-    let starting_date_d = new Date();
-
-
-    starting_date_d.setFullYear(s.substring(0, 4));
-    starting_date_d.setMonth((s.substring(4, 6) - 1));
-    starting_date_d.setDate(s.substring(6, 8));
-
-
-
-
-    let date1 = '';
-
-    let day = starting_date_d.getDate() - 1;
-    starting_date_d.setDate(day);
-
-    let date_list = [];
-    let date_list_int = [];
-
-    let day_comp = 0;
-
-    for (let i = 0; (day_comp < parseInt(e)); i++) {
-
-        let day = starting_date_d.getDate() + 1;
+        let day = starting_date_d.getDate() - 1;
         starting_date_d.setDate(day);
-        day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
-        date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
-        // //console.log(date1);
-        date_list.push(date1);
-        date_list_int.push(day_comp);
-    }
 
-    ////console.log(date_list);
+        let date_list = [];
+        let date_list_int = [];
+
+        let day_comp = 0;
+
+        for (let i = 0; (day_comp < parseInt(e)); i++) {
+
+            let day = starting_date_d.getDate() + 1;
+            starting_date_d.setDate(day);
+            day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
+            date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
+            // //console.log(date1);
+            date_list.push(date1);
+            date_list_int.push(day_comp);
+        }
+
+        ////console.log(date_list);
 
 
-    var table_column_name2 = "<tr>" +
-        "<th>Employee ID</th>" + "<th>Total</th>";
-    for (let d of date_list) {
-        table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
-    }
+        var table_column_name2 = "<tr>" +
+            "<th>Employee ID</th>";
+        for (let d of date_list) {
+            table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
+        }
 
-    table_column_name2 = table_column_name2 + "</tr>";
-
-
-
-    var emp_data3 =
-        "<tr>" +
-        "<td>Jill</td>" +
-        "<td>Smith</td>" +
-        "<td>50</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>Eve</td>" +
-        "<td>Jackson</td>" +
-        "<td>94</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>John</td>" +
-        "<td>Doe</td>" +
-        "<td>80</td>" +
-        "</tr>";
-
-    var data_tale4 =
-        "</table>" +
-        "</body>" +
-        "</html>";
+        table_column_name2 = table_column_name2 + "</tr>";
 
 
 
-    //style_title+table_content
-    //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
+        var emp_data3 =
+            "<tr>" +
+            "<td>Jill</td>" +
+            "<td>Smith</td>" +
+            "<td>50</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>Eve</td>" +
+            "<td>Jackson</td>" +
+            "<td>94</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>John</td>" +
+            "<td>Doe</td>" +
+            "<td>80</td>" +
+            "</tr>";
+
+        var data_tale4 =
+            "</table>" +
+            "</body>" +
+            "</html>";
 
 
 
-    let emp_value;
-
-    // console.log("r = " + r);
-
-    if (r == "R") {
-        emp_value = getEmployeeRoaster(hospital_ID_path, s, e, u);
-    } else {
-        emp_value = getEmployeeShift(hospital_ID_path, s, e, u);
-    }
+        //style_title+table_content
+        //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
 
 
-    let emp_request = getEmployeeRequest(hospital_ID_path, s, e, u);
+        let emp_value = getEmployeeRequest(hospital_ID_path, s, e, u);
 
 
+        let employee_stringWork = new Map();
 
-    let employee_stringWork = new Map();
-
-    emp_value.then((value) => {
-
-        emp_request.then((value_request) => {
+        emp_value.then((value) => {
 
 
-            // console.log("value_request");
-            // console.log(value);
-            // console.log(" aa giyaa");
+            ////console.log(value);
+            ////console.log(" aa giyaa");
+
+            //table_column_name2 = '';
 
             let map_of_dates = new Set();
 
-            let totalNightShift = 0;
-            let totalDayShift = 0;
-            let totalEveningShift = 0;
+            for (let d of date_list_int) {
 
-            let employee_working_hour = new Map();
+                for (let [emp_id, date_work] of value) {
+                    if (date_work.has(d)) {
 
-            if (r == "R") {
-                for (let d of date_list_int) {
+                        let str = '';
+                        let id = 'C';
+                        let isFirst = true;
+                        for (let s of date_work.get(d)) {
 
-                    for (let [emp_id, date_work] of value) {
-                        if (date_work.has("" + parseInt(d))) {
+                            if (isFirst) {
+                                str = s;
+                                id += s.split(':')[1];
 
-                            let str = '';
-                            let id = 'C';
-                            let isFirst = true;
-                            for (let s of date_work.get("" + parseInt(d))) {
-
-
-                                let isRequestApproved = false;
-                                if (value_request.has(emp_id)) {
-                                    let date_ReqSet = value_request.get(emp_id);
-                                    // console.log(date_ReqSet);
-                                    // console.log(date_ReqSet.get(d));
-                                    // console.log(date_ReqSet.get(d).has(s));
-
-                                    if (date_ReqSet.has(d)) {
-                                        isRequestApproved = date_ReqSet.get(d).has(s);
-                                    }
-                                    // console.log(" isRequestApproved : "+s);
-                                    // console.log(isRequestApproved);
-                                }
-
-                                if (isRequestApproved == undefined) {
-                                    isRequestApproved = false;
-                                }
-
-                                let code = '';
-                                if (isFirst) {
-                                    str = s;
-                                    code = s.split(':')[1];
-                                    id += code;
-                                    isFirst = false;
-                                } else {
-                                    str = str + '+' + s;
-                                    code = s.split(':')[1];
-                                    id += code;
-                                }
-
-                                if (code != undefined) {
-                                    ////console.log('code: '+code);
-
-                                    if (employee_working_hour.has(emp_id)) {
-                                        let day_map = employee_working_hour.get(emp_id);
-                                        if (day_map.has(code)) {
-                                            let past_total = day_map.get(code);
-                                            day_map.set(code, past_total + 1);
-                                        } else {
-                                            day_map.set(code, 1);
-                                        }
-                                        employee_working_hour.set(emp_id, day_map);
-
-                                    } else {
-                                        let day_map = new Map();
-                                        day_map.set(code, 1);
-                                        employee_working_hour.set(emp_id, day_map);
-                                    }
-
-                                }
-
-                                if (isRequestApproved) {
-                                    str = str + '#';
-                                }
-
-                                if (id == 'Cundefined') {
-                                    id = s;
-                                }
-
+                                isFirst = false;
+                            } else {
+                                str = str + ':' + s;
+                                id += s.split(':')[1];
                             }
-                            let work = "<td id =\"" + id + "\">" + str + "</td>";
 
-                            if (employee_stringWork.has(emp_id)) {
-                                let emp_str = employee_stringWork.get(emp_id);
-                                work = emp_str + work
+                            if (id == 'Cundefined') {
+                                id = s;
                             }
-                            employee_stringWork.set(emp_id, work);
 
-                        } else {
-                            let work = "<td>UND</td>";
-                            if (employee_stringWork.has(emp_id)) {
-                                let emp_str = employee_stringWork.get(emp_id);
-                                work = emp_str + work
-                            }
-                            employee_stringWork.set(emp_id, work);
                         }
-                    }
-                }
-            } else {
-                for (let d of date_list_int) {
+                        let work = "<td id =\"" + id + "\">" + str + "</td>";
 
-                    for (let [emp_id, date_work] of value) {
-                        if (date_work.has(parseInt(d))) {
-
-                            let str = '';
-                            let id = 'C';
-                            let isFirst = true;
-                            for (let s of date_work.get(parseInt(d))) {
-
-
-                                let isRequestApproved = false;
-                                if (value_request.has(emp_id)) {
-                                    let date_ReqSet = value_request.get(emp_id);
-                                    // console.log(date_ReqSet);
-                                    // console.log(date_ReqSet.get(d));
-                                    // console.log(date_ReqSet.get(d).has(s));
-
-                                    if (date_ReqSet.has(d)) {
-                                        isRequestApproved = date_ReqSet.get(d).has(s);
-                                    }
-                                    // console.log(" isRequestApproved : "+s);
-                                    // console.log(isRequestApproved);
-                                }
-
-                                if (isRequestApproved == undefined) {
-                                    isRequestApproved = false;
-                                }
-
-                                let code = '';
-                                if (isFirst) {
-                                    str = s;
-                                    code = s.split(':')[1];
-                                    id += code;
-                                    isFirst = false;
-                                } else {
-                                    str = str + '+' + s;
-                                    code = s.split(':')[1];
-                                    id += code;
-
-
-                                }
-
-                                if (code != undefined) {
-                                    ////console.log('code: '+code);
-
-                                    if (employee_working_hour.has(emp_id)) {
-                                        let day_map = employee_working_hour.get(emp_id);
-                                        if (day_map.has(code)) {
-                                            let past_total = day_map.get(code);
-                                            day_map.set(code, past_total + 1);
-                                        } else {
-                                            day_map.set(code, 1);
-                                        }
-                                        employee_working_hour.set(emp_id, day_map);
-
-                                    } else {
-                                        let day_map = new Map();
-                                        day_map.set(code, 1);
-                                        employee_working_hour.set(emp_id, day_map);
-                                    }
-
-                                }
-
-                                if (isRequestApproved) {
-                                    str = str + '#';
-                                }
-
-                                if (id == 'Cundefined') {
-                                    id = s;
-                                }
-
-                            }
-                            let work = "<td id =\"" + id + "\">" + str + "</td>";
-
-                            if (employee_stringWork.has(emp_id)) {
-                                let emp_str = employee_stringWork.get(emp_id);
-                                work = emp_str + work
-                            }
-                            employee_stringWork.set(emp_id, work);
-
-                        } else {
-                            let work = "<td>UND</td>";
-                            if (employee_stringWork.has(emp_id)) {
-                                let emp_str = employee_stringWork.get(emp_id);
-                                work = emp_str + work
-                            }
-                            employee_stringWork.set(emp_id, work);
+                        if (employee_stringWork.has(emp_id)) {
+                            let emp_str = employee_stringWork.get(emp_id);
+                            work = emp_str + work
                         }
+                        employee_stringWork.set(emp_id, work);
+
+                    } else {
+                        let work = "<td>UND</td>";
+                        if (employee_stringWork.has(emp_id)) {
+                            let emp_str = employee_stringWork.get(emp_id);
+                            work = emp_str + work
+                        }
+                        employee_stringWork.set(emp_id, work);
                     }
                 }
             }
 
 
-
             emp_data3 = '';
             for (let [emp_id, date_work] of employee_stringWork) {
-
-                emp_data3 = emp_data3 + "<tr>" +
-                    "<td>" + emp_id + "</td>";
-
-                let total = 'NN';
-                if (employee_working_hour.has(emp_id)) {
-                    for (let [id, sum] of employee_working_hour.get(emp_id)) {
-                        total += id + ':' + sum + ';';
-                    }
-                } else {
-                    total = '0';
-                }
-
-                emp_data3 + emp_data3 + "<td>" + total + "</td>" +
-                    date_work +
-                    "</tr>";
-
-            }
-
-            emp_data3 = '';
-            for (let [emp_id, date_work] of employee_stringWork) {
-
-                let total = '/';
-                let mega_sum = 0;
-                if (employee_working_hour.has(emp_id)) {
-                    for (let [id, sum] of employee_working_hour.get(emp_id)) {
-                        total += id + ':' + sum + '/';
-
-                        if (id == '1') {
-                            mega_sum = sum + mega_sum;
-                        } else if (id == '2') {
-                            mega_sum = sum + mega_sum;
-                        } else if (id == '3') {
-                            mega_sum = 2 * sum + mega_sum;
-                        }
-                    }
-
-                    mega_sum = 6 * mega_sum;
-                } else {
-                    total = '0';
-                }
 
                 emp_data3 = emp_data3 + "<tr>" +
                     "<td>" + emp_id + "</td>" +
-                    "<td>" + total + '=' + mega_sum + "</td>" +
                     date_work +
                     "</tr>";
 
             }
 
 
-            //console.log(emp_data3);
+            ////console.log(emp_data3);
 
             res.send(style_title_head1 + table_column_name2 + emp_data3 + data_tale4);
 
@@ -1996,458 +1508,958 @@ exports.requestCheck = functions
         }).catch((err) => {
             console.log(err);
         })
-    }).catch((err) => {
-        console.log(err);
-    })
 
 
-});
+    });
+
+exports.requestCheck = functions
+    .region('asia-northeast3').https.onRequest((req, res) => {
+
+        if (req.method === 'PUT') {
+            return res.status(403).send('Forbidden!');
+        }
+
+
+
+        console.log('request query: ');
+        console.log(req.query);
+
+
+        var r = req.query.r; // R = roaster; S = Shift
+        var u = req.query.u;
+        var s = req.query.s;
+        var e = req.query.e;
+        var hospital_ID_path = "/Nursing/" + req.query.h + "/";
+
+        console.log('u: ' + u);
+        console.log('s: ' + s);
+        console.log('e: ' + e);
+        console.log('h: ' + hospital_ID_path);
+
+
+
+
+        var style_title_head1 =
+            "<head>" +
+            "<style>" +
+            "table {" +
+            " width:100%;" +
+            "}" +
+            "table, th, td {" +
+            "border: 1px solid black;" +
+            "border-collapse: collapse;" +
+            "}" +
+            "th, td {" +
+            "padding: 15px;" +
+            "text-align: left;" +
+            "}" +
+            "#t01 tr:nth-child(even) {" +
+            "background-color: #eee;" +
+            "}" +
+            "#t01 tr:nth-child(odd) {" +
+            "background-color: #fff;" +
+            "}" +
+            "#t01 th {" +
+            "background-color: #212F3D;" +
+            "color: white;" +
+            "}" +
+
+            "#C1 {" +
+            "background-color: #3498DB;" +
+            "color: white;" +
+            "}" +
+
+            "#C2 {" +
+            "background-color: #28B463;" +
+            "color: white;" +
+            "}" +
+
+            "#C3 {" +
+            "background-color: #BA4A00;" +
+            "color: white;" +
+            "}" +
+
+            "#C12 {" +
+            "background-color: #8E44AD;" +
+            "color: white;" +
+            "}" +
+
+            "#NO {" +
+            "background-color: #34495E;" +
+            "color: white;" +
+            "}" +
+
+            "#WO {" +
+            "background-color: #DAF7A6;" +
+            "color: #34495E;" +
+            "}" +
+
+            "#CO {" +
+            "background-color: #34495E;" +
+            "color: #F24D1B;" +
+            "}" +
+
+            "#PL {" +
+            "background-color: #A1CAF1;" +
+            "color: #0B12EB;" +
+            "}" +
+
+            "#EL {" +
+            "background-color: #879588;" +
+            "color: white;" +
+            "}" +
+
+            "</style>" +
+            "</head>" +
+            "<body>" +
+
+            "<h2>Roster Table</h2>" +
+            "<table id=\"t01\">";
+
+
+
+
+        // //console.log('u: ' + u);
+        // //console.log('s: ' + s);
+        // //console.log('e: ' + e);
+
+        if (s.length != 8) {
+            return res.status(403).send('Forbidden!');
+        }
+        if (e.length != 8) {
+            return res.status(403).send('Forbidden!');
+        }
+
+        if (parseInt(s) > parseInt(e)) {
+            return res.status(403).send('Forbidden!');
+        }
+
+        try {
+
+            let strting_year = parseInt(s.substring(0, 4));
+            let starting_month = parseInt(s.substring(4, 6));
+
+            let ending_year = parseInt(e.substring(0, 4));
+            let ending_month = parseInt(e.substring(4, 6));
+
+            if (strting_year != ending_year) {
+                return res.status(403).send('Forbidden!');
+            }
+
+            if (starting_month > ending_month) {
+                return res.status(403).send('Forbidden!');
+            }
+
+            if ((ending_month - starting_month) > 1) {
+                return res.status(403).send('Forbidden!');
+            }
+
+        } catch (err) {
+            console.log(err);
+        }
+
+        let starting_date_d = new Date();
+
+
+        starting_date_d.setFullYear(s.substring(0, 4));
+        starting_date_d.setMonth((s.substring(4, 6) - 1));
+        starting_date_d.setDate(s.substring(6, 8));
+
+
+
+
+        let date1 = '';
+
+        let day = starting_date_d.getDate() - 1;
+        starting_date_d.setDate(day);
+
+        let date_list = [];
+        let date_list_int = [];
+
+        let day_comp = 0;
+
+        for (let i = 0; (day_comp < parseInt(e)); i++) {
+
+            let day = starting_date_d.getDate() + 1;
+            starting_date_d.setDate(day);
+            day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
+            date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
+            // //console.log(date1);
+            date_list.push(date1);
+            date_list_int.push(day_comp);
+        }
+
+        ////console.log(date_list);
+
+
+        var table_column_name2 = "<tr>" +
+            "<th>Employee ID</th>" + "<th>Total</th>";
+        for (let d of date_list) {
+            table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
+        }
+
+        table_column_name2 = table_column_name2 + "</tr>";
+
+
+
+        var emp_data3 =
+            "<tr>" +
+            "<td>Jill</td>" +
+            "<td>Smith</td>" +
+            "<td>50</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>Eve</td>" +
+            "<td>Jackson</td>" +
+            "<td>94</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>John</td>" +
+            "<td>Doe</td>" +
+            "<td>80</td>" +
+            "</tr>";
+
+        var data_tale4 =
+            "</table>" +
+            "</body>" +
+            "</html>";
+
+
+
+        //style_title+table_content
+        //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
+
+
+
+        let emp_value;
+
+        // console.log("r = " + r);
+
+        if (r == "R") {
+            emp_value = getEmployeeRoaster(hospital_ID_path, s, e, u);
+        } else {
+            emp_value = getEmployeeShift(hospital_ID_path, s, e, u);
+        }
+
+        let emp_request = getEmployeeRequest(hospital_ID_path, s, e, u);
+
+        let employee_stringWork = new Map();
+
+        emp_value.then((value) => {
+
+            emp_request.then((value_request) => {
+
+
+                // console.log("value_request");
+                // console.log(value);
+                // console.log(" aa giyaa");
+
+                let map_of_dates = new Set();
+
+                let totalNightShift = 0;
+                let totalDayShift = 0;
+                let totalEveningShift = 0;
+
+                let employee_working_hour = new Map();
+
+                if (r == "R") {
+                    for (let d of date_list_int) {
+
+                        for (let [emp_id, date_work] of value) {
+                            if (date_work.has("" + parseInt(d))) {
+
+                                let str = '';
+                                let id = 'C';
+                                let isFirst = true;
+                                for (let s of date_work.get("" + parseInt(d))) {
+
+
+                                    let isRequestApproved = false;
+                                    if (value_request.has(emp_id)) {
+                                        let date_ReqSet = value_request.get(emp_id);
+                                        // console.log(date_ReqSet);
+                                        // console.log(date_ReqSet.get(d));
+                                        // console.log(date_ReqSet.get(d).has(s));
+
+                                        if (date_ReqSet.has(d)) {
+                                            isRequestApproved = date_ReqSet.get(d).has(s);
+                                        }
+                                        // console.log(" isRequestApproved : "+s);
+                                        // console.log(isRequestApproved);
+                                    }
+
+                                    if (isRequestApproved == undefined) {
+                                        isRequestApproved = false;
+                                    }
+
+                                    let code = '';
+                                    if (isFirst) {
+                                        str = s;
+                                        code = s.split(':')[1];
+                                        id += code;
+                                        isFirst = false;
+                                    } else {
+                                        str = str + '+' + s;
+                                        code = s.split(':')[1];
+                                        id += code;
+                                    }
+
+                                    if (code != undefined) {
+                                        ////console.log('code: '+code);
+
+                                        if (employee_working_hour.has(emp_id)) {
+                                            let day_map = employee_working_hour.get(emp_id);
+                                            if (day_map.has(code)) {
+                                                let past_total = day_map.get(code);
+                                                day_map.set(code, past_total + 1);
+                                            } else {
+                                                day_map.set(code, 1);
+                                            }
+                                            employee_working_hour.set(emp_id, day_map);
+
+                                        } else {
+                                            let day_map = new Map();
+                                            day_map.set(code, 1);
+                                            employee_working_hour.set(emp_id, day_map);
+                                        }
+
+                                    }
+
+                                    if (isRequestApproved) {
+                                        str = str + '#';
+                                    }
+
+                                    if (id == 'Cundefined') {
+                                        id = s;
+                                    }
+
+                                }
+                                let work = "<td id =\"" + id + "\">" + str + "</td>";
+
+                                if (employee_stringWork.has(emp_id)) {
+                                    let emp_str = employee_stringWork.get(emp_id);
+                                    work = emp_str + work
+                                }
+                                employee_stringWork.set(emp_id, work);
+
+                            } else {
+                                let work = "<td>UND</td>";
+                                if (employee_stringWork.has(emp_id)) {
+                                    let emp_str = employee_stringWork.get(emp_id);
+                                    work = emp_str + work
+                                }
+                                employee_stringWork.set(emp_id, work);
+                            }
+                        }
+                    }
+                } else {
+                    for (let d of date_list_int) {
+
+                        for (let [emp_id, date_work] of value) {
+                            if (date_work.has(parseInt(d))) {
+
+                                let str = '';
+                                let id = 'C';
+                                let isFirst = true;
+                                for (let s of date_work.get(parseInt(d))) {
+
+
+                                    let isRequestApproved = false;
+                                    if (value_request.has(emp_id)) {
+                                        let date_ReqSet = value_request.get(emp_id);
+                                        // console.log(date_ReqSet);
+                                        // console.log(date_ReqSet.get(d));
+                                        // console.log(date_ReqSet.get(d).has(s));
+
+                                        if (date_ReqSet.has(d)) {
+                                            isRequestApproved = date_ReqSet.get(d).has(s);
+                                        }
+                                        // console.log(" isRequestApproved : "+s);
+                                        // console.log(isRequestApproved);
+                                    }
+
+                                    if (isRequestApproved == undefined) {
+                                        isRequestApproved = false;
+                                    }
+
+                                    let code = '';
+                                    if (isFirst) {
+                                        str = s;
+                                        code = s.split(':')[1];
+                                        id += code;
+                                        isFirst = false;
+                                    } else {
+                                        str = str + '+' + s;
+                                        code = s.split(':')[1];
+                                        id += code;
+                                    }
+
+                                    if (code != undefined) {
+                                        ////console.log('code: '+code);
+                                        if (employee_working_hour.has(emp_id)) {
+                                            let day_map = employee_working_hour.get(emp_id);
+                                            if (day_map.has(code)) {
+                                                let past_total = day_map.get(code);
+                                                day_map.set(code, past_total + 1);
+                                            } else {
+                                                day_map.set(code, 1);
+                                            }
+                                            employee_working_hour.set(emp_id, day_map);
+
+                                        } else {
+                                            let day_map = new Map();
+                                            day_map.set(code, 1);
+                                            employee_working_hour.set(emp_id, day_map);
+                                        }
+
+                                    }
+
+                                    if (isRequestApproved) {
+                                        str = str + '#';
+                                    }
+
+                                    if (id == 'Cundefined') {
+                                        id = s;
+                                    }
+
+                                }
+                                let work = "<td id =\"" + id + "\">" + str + "</td>";
+
+                                if (employee_stringWork.has(emp_id)) {
+                                    let emp_str = employee_stringWork.get(emp_id);
+                                    work = emp_str + work
+                                }
+                                employee_stringWork.set(emp_id, work);
+
+                            } else {
+                                let work = "<td>UND</td>";
+                                if (employee_stringWork.has(emp_id)) {
+                                    let emp_str = employee_stringWork.get(emp_id);
+                                    work = emp_str + work
+                                }
+                                employee_stringWork.set(emp_id, work);
+                            }
+                        }
+                    }
+                }
+
+
+
+                emp_data3 = '';
+                for (let [emp_id, date_work] of employee_stringWork) {
+
+                    emp_data3 = emp_data3 + "<tr>" +
+                        "<td>" + emp_id + "</td>";
+
+                    let total = 'NN';
+                    if (employee_working_hour.has(emp_id)) {
+                        for (let [id, sum] of employee_working_hour.get(emp_id)) {
+                            total += id + ':' + sum + ';';
+                        }
+                    } else {
+                        total = '0';
+                    }
+
+                    emp_data3 + emp_data3 + "<td>" + total + "</td>" +
+                        date_work +
+                        "</tr>";
+
+                }
+
+                emp_data3 = '';
+                for (let [emp_id, date_work] of employee_stringWork) {
+
+                    let total = '/';
+                    let mega_sum = 0;
+                    if (employee_working_hour.has(emp_id)) {
+                        for (let [id, sum] of employee_working_hour.get(emp_id)) {
+                            total += id + ':' + sum + '/';
+
+                            if (id == '1') {
+                                mega_sum = sum + mega_sum;
+                            } else if (id == '2') {
+                                mega_sum = sum + mega_sum;
+                            } else if (id == '3') {
+                                mega_sum = 2 * sum + mega_sum;
+                            }
+                        }
+
+                        mega_sum = 6 * mega_sum;
+                    } else {
+                        total = '0';
+                    }
+
+                    emp_data3 = emp_data3 + "<tr>" +
+                        "<td>" + emp_id + "</td>" +
+                        "<td>" + total + '=' + mega_sum + "</td>" +
+                        date_work +
+                        "</tr>";
+
+                }
+
+
+                //console.log(emp_data3);
+
+                res.send(style_title_head1 + table_column_name2 + emp_data3 + data_tale4);
+
+                return;
+            }).catch((err) => {
+                console.log(err);
+            })
+        }).catch((err) => {
+            console.log(err);
+        })
+
+
+    });
 
 exports.leaveFunc = functions
-.region('asia-south1').https.onRequest((req, res) => {
+    .region('asia-northeast3').https.onRequest((req, res) => {
 
-    if (req.method === 'PUT') {
-        return res.status(403).send('Forbidden!');
-    }
-
-
-
-    // //console.log('request query: ');
-    // //console.log(req.query);
-
-
-    var u = req.query.u;
-    var s = req.query.s;
-    var e = req.query.e;
-    var hospital_ID_path = "/Nursing/" + req.query.h + "/";
-
-    // //console.log('u: ' + u);
-    // //console.log('s: ' + s);
-    // //console.log('e: ' + e);
+        if (req.method === 'PUT') {
+            return res.status(403).send('Forbidden!');
+        }
 
 
 
-    var style_title_head1 =
-        "<head>" +
-        "<style>" +
-        "table {" +
-        " width:100%;" +
-        "}" +
-        "table, th, td {" +
-        "border: 1px solid black;" +
-        "border-collapse: collapse;" +
-        "}" +
-        "th, td {" +
-        "padding: 15px;" +
-        "text-align: left;" +
-        "}" +
-        "#t01 tr:nth-child(even) {" +
-        "background-color: #eee;" +
-        "}" +
-        "#t01 tr:nth-child(odd) {" +
-        "background-color: #fff;" +
-        "}" +
-        "#t01 th {" +
-        "background-color: #212F3D;" +
-        "color: white;" +
-        "}" +
+        // //console.log('request query: ');
+        // //console.log(req.query);
 
-        "#C1 {" +
-        "background-color: #3498DB;" +
-        "color: white;" +
-        "}" +
 
-        "#C2 {" +
-        "background-color: #28B463;" +
-        "color: white;" +
-        "}" +
+        var u = req.query.u;
+        var s = req.query.s;
+        var e = req.query.e;
+        var hospital_ID_path = "/Nursing/" + req.query.h + "/";
 
-        "#C3 {" +
-        "background-color: #BA4A00;" +
-        "color: white;" +
-        "}" +
-
-        "#C12 {" +
-        "background-color: #8E44AD;" +
-        "color: white;" +
-        "}" +
-
-        "#NO {" +
-        "background-color: #34495E;" +
-        "color: white;" +
-        "}" +
-
-        "#WO {" +
-        "background-color: #DAF7A6;" +
-        "color: #34495E;" +
-        "}" +
-
-        "</style>" +
-        "</head>" +
-        "<body>" +
-
-        "<h2>Roster Table</h2>" +
-        "<table id=\"t01\">";
+        // //console.log('u: ' + u);
+        // //console.log('s: ' + s);
+        // //console.log('e: ' + e);
 
 
 
+        var style_title_head1 =
+            "<head>" +
+            "<style>" +
+            "table {" +
+            " width:100%;" +
+            "}" +
+            "table, th, td {" +
+            "border: 1px solid black;" +
+            "border-collapse: collapse;" +
+            "}" +
+            "th, td {" +
+            "padding: 15px;" +
+            "text-align: left;" +
+            "}" +
+            "#t01 tr:nth-child(even) {" +
+            "background-color: #eee;" +
+            "}" +
+            "#t01 tr:nth-child(odd) {" +
+            "background-color: #fff;" +
+            "}" +
+            "#t01 th {" +
+            "background-color: #212F3D;" +
+            "color: white;" +
+            "}" +
+
+            "#C1 {" +
+            "background-color: #3498DB;" +
+            "color: white;" +
+            "}" +
+
+            "#C2 {" +
+            "background-color: #28B463;" +
+            "color: white;" +
+            "}" +
+
+            "#C3 {" +
+            "background-color: #BA4A00;" +
+            "color: white;" +
+            "}" +
+
+            "#C12 {" +
+            "background-color: #8E44AD;" +
+            "color: white;" +
+            "}" +
+
+            "#NO {" +
+            "background-color: #34495E;" +
+            "color: white;" +
+            "}" +
+
+            "#WO {" +
+            "background-color: #DAF7A6;" +
+            "color: #34495E;" +
+            "}" +
+
+            "</style>" +
+            "</head>" +
+            "<body>" +
+
+            "<h2>Roster Table</h2>" +
+            "<table id=\"t01\">";
 
 
-    // //console.log('u: ' + u);
-    // //console.log('s: ' + s);
-    // //console.log('e: ' + e);
-
-    if (s.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-    if (e.length != 8) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    if (parseInt(s) > parseInt(e)) {
-        return res.status(403).send('Forbidden!');
-    }
-
-    // try {
-
-    //     let strting_year = parseInt(s.substring(0, 4));
-    //     let starting_month = parseInt(s.substring(4, 6));
-
-    //     let ending_year = parseInt(e.substring(0, 4));
-    //     let ending_month = parseInt(e.substring(4, 6));
-
-    //     if (strting_year != ending_year) {
-    //         return res.status(403).send('Forbidden!');
-    //     }
-
-    //     if (starting_month > ending_month) {
-    //         return res.status(403).send('Forbidden!');
-    //     }
-
-    // } catch (err) {
-    //     console.log(err);
-    // }
-
-    let starting_date_d = new Date();
-
-    // //console.log('year: ' + starting_date.substring(0, 4));
-    // //console.log('month: ' + starting_date.substring(4, 6));
-    // //console.log('date: ' + starting_date.substring(6, 8));
-
-    starting_date_d.setFullYear(s.substring(0, 4));
-    starting_date_d.setMonth((s.substring(4, 6) - 1));
-    starting_date_d.setDate(s.substring(6, 8));
 
 
-    let date1 = '';
 
-    let day = starting_date_d.getDate() - 1;
-    starting_date_d.setDate(day);
+        // //console.log('u: ' + u);
+        // //console.log('s: ' + s);
+        // //console.log('e: ' + e);
 
-    let date_list = [];
-    let date_list_int = [];
+        if (s.length != 8) {
+            return res.status(403).send('Forbidden!');
+        }
+        if (e.length != 8) {
+            return res.status(403).send('Forbidden!');
+        }
 
-    let day_comp = 0;
+        if (parseInt(s) > parseInt(e)) {
+            return res.status(403).send('Forbidden!');
+        }
 
-    for (let i = 0; (day_comp < parseInt(e)); i++) {
+        // try {
 
-        let day = starting_date_d.getDate() + 1;
+        //     let strting_year = parseInt(s.substring(0, 4));
+        //     let starting_month = parseInt(s.substring(4, 6));
+
+        //     let ending_year = parseInt(e.substring(0, 4));
+        //     let ending_month = parseInt(e.substring(4, 6));
+
+        //     if (strting_year != ending_year) {
+        //         return res.status(403).send('Forbidden!');
+        //     }
+
+        //     if (starting_month > ending_month) {
+        //         return res.status(403).send('Forbidden!');
+        //     }
+
+        // } catch (err) {
+        //     console.log(err);
+        // }
+
+        let starting_date_d = new Date();
+
+        // //console.log('year: ' + starting_date.substring(0, 4));
+        // //console.log('month: ' + starting_date.substring(4, 6));
+        // //console.log('date: ' + starting_date.substring(6, 8));
+
+        starting_date_d.setFullYear(s.substring(0, 4));
+        starting_date_d.setMonth((s.substring(4, 6) - 1));
+        starting_date_d.setDate(s.substring(6, 8));
+
+
+        let date1 = '';
+
+        let day = starting_date_d.getDate() - 1;
         starting_date_d.setDate(day);
-        day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
-        date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
-        // //console.log(date1);
-        date_list.push(date1);
-        date_list_int.push(day_comp);
-    }
 
-    ////console.log(date_list);
+        let date_list = [];
+        let date_list_int = [];
+
+        let day_comp = 0;
+
+        for (let i = 0; (day_comp < parseInt(e)); i++) {
+
+            let day = starting_date_d.getDate() + 1;
+            starting_date_d.setDate(day);
+            day_comp = starting_date_d.getFullYear() * 10000 + (starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate();
+            date1 = starting_date_d.getDate() + '/' + (starting_date_d.getMonth() + 1);
+            // //console.log(date1);
+            date_list.push(date1);
+            date_list_int.push(day_comp);
+        }
+
+        ////console.log(date_list);
 
 
-    var table_column_name2 = "<tr>" +
-        "<th>Employee ID</th>";
-    for (let d of date_list) {
-        table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
-    }
+        var table_column_name2 = "<tr>" +
+            "<th>Employee ID</th>";
+        for (let d of date_list) {
+            table_column_name2 = table_column_name2 + "<th>" + d + "</th> ";
+        }
 
-    table_column_name2 = table_column_name2 + "</tr>";
-
-
-
-    var emp_data3 =
-        "<tr>" +
-        "<td>Jill</td>" +
-        "<td>Smith</td>" +
-        "<td>50</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>Eve</td>" +
-        "<td>Jackson</td>" +
-        "<td>94</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td>John</td>" +
-        "<td>Doe</td>" +
-        "<td>80</td>" +
-        "</tr>";
-
-    var data_tale4 =
-        "</table>" +
-        "</body>" +
-        "</html>";
+        table_column_name2 = table_column_name2 + "</tr>";
 
 
 
-    //style_title+table_content
-    //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
+        var emp_data3 =
+            "<tr>" +
+            "<td>Jill</td>" +
+            "<td>Smith</td>" +
+            "<td>50</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>Eve</td>" +
+            "<td>Jackson</td>" +
+            "<td>94</td>" +
+            "</tr>" +
+
+            "<tr>" +
+            "<td>John</td>" +
+            "<td>Doe</td>" +
+            "<td>80</td>" +
+            "</tr>";
+
+        var data_tale4 =
+            "</table>" +
+            "</body>" +
+            "</html>";
 
 
-    let emp_leave = getEmployeeLeaveDetails(hospital_ID_path, s, e, u);
-    let all_leave_type = getLeaveDBDetails(hospital_ID_path, u); // <employeeID: <Date: <leave_type:type, leave_db_id: id>>>
-    let employee_stringWork = new Map();
 
-    all_leave_type.then((leave_values) => {
-        emp_leave.then((emp_leave_values) => { // <employeeID: <Date: <leave_type:type, leave_db_id: id>>>
-
-            let employee_ids = [];
-
-            var table_column_name = "<tr>" +
-                "<th>Leave Type</th>" +
-                "<th>Leave Details</th>" +
-                "<th>Starting</th>" +
-                "<th>Ending</th>" +
-                "<th>Total Leave</th>";
-
-            for (let [id, value_map] of emp_leave_values) {
-                table_column_name = table_column_name + "<th>" + id + "</th> ";
-                employee_ids.push(id);
-            }
-            table_column_name = table_column_name + "</tr>";
-
-            var columns_values = "<tr>";
-
-            let pending_tatal_leave = new Map();
-
-            pending_tatal_leave.set("ALL", 0);
-
-            for (let [id_leave, leave_values_details] of leave_values) {
-
-                columns_values = columns_values +
-                    "<td>" + leave_values_details.get(E008_LeaveDB.leave_type) + "</td>" +
-                    "<td>" + leave_values_details.get(E008_LeaveDB.leave_detail) + "</td>" +
-                    "<td>" + leave_values_details.get(E008_LeaveDB.starting_date) + "</td>" +
-                    "<td>" + leave_values_details.get(E008_LeaveDB.ending_date) + "</td>" +
-                    "<td>" + leave_values_details.get(E008_LeaveDB.leave_count) + "</td>";
-
-                const total_leave = parseInt(leave_values_details.get(E008_LeaveDB.leave_count));
+        //style_title+table_content
+        //res.send(style_title_head1+table_column_name2+emp_data3+data_tale4);
 
 
-                let All_total = pending_tatal_leave.get("ALL") + total_leave;
-                pending_tatal_leave.set("ALL", All_total);
+        let emp_leave = getEmployeeLeaveDetails(hospital_ID_path, s, e, u);
+        let all_leave_type = getLeaveDBDetails(hospital_ID_path, u); // <employeeID: <Date: <leave_type:type, leave_db_id: id>>>
+        let employee_stringWork = new Map();
+
+        all_leave_type.then((leave_values) => {
+            emp_leave.then((emp_leave_values) => { // <employeeID: <Date: <leave_type:type, leave_db_id: id>>>
+
+                let employee_ids = [];
+
+                var table_column_name = "<tr>" +
+                    "<th>Leave Type</th>" +
+                    "<th>Leave Details</th>" +
+                    "<th>Starting</th>" +
+                    "<th>Ending</th>" +
+                    "<th>Total Leave</th>";
+
+                for (let [id, value_map] of emp_leave_values) {
+                    table_column_name = table_column_name + "<th>" + id + "</th> ";
+                    employee_ids.push(id);
+                }
+                table_column_name = table_column_name + "</tr>";
+
+                var columns_values = "<tr>";
+
+                let pending_tatal_leave = new Map();
+
+                pending_tatal_leave.set("ALL", 0);
+
+                for (let [id_leave, leave_values_details] of leave_values) {
+
+                    columns_values = columns_values +
+                        "<td>" + leave_values_details.get(E008_LeaveDB.leave_type) + "</td>" +
+                        "<td>" + leave_values_details.get(E008_LeaveDB.leave_detail) + "</td>" +
+                        "<td>" + leave_values_details.get(E008_LeaveDB.starting_date) + "</td>" +
+                        "<td>" + leave_values_details.get(E008_LeaveDB.ending_date) + "</td>" +
+                        "<td>" + leave_values_details.get(E008_LeaveDB.leave_count) + "</td>";
+
+                    const total_leave = parseInt(leave_values_details.get(E008_LeaveDB.leave_count));
+
+
+                    let All_total = pending_tatal_leave.get("ALL") + total_leave;
+                    pending_tatal_leave.set("ALL", All_total);
+
+                    for (let i = 0; i < employee_ids.length; i++) {
+
+                        let map_leave = emp_leave_values.get(employee_ids[i]);
+
+                        let leave_count = 0;
+                        for (let [date, detail_map] of map_leave) {
+
+                            if (detail_map.get(E003_LeaveCalendar.leave_db_id) == id_leave) {
+                                leave_count++
+                            }
+
+                        }
+
+                        let panding_takes = "";
+                        if ((total_leave - leave_count) > 0) {
+                            panding_takes = panding_takes + "P:" + (total_leave - leave_count) + ",";
+                        }
+
+
+                        panding_takes = panding_takes + " T:" + (leave_count)
+
+                        columns_values = columns_values + "<td>" + panding_takes + "</td>";
+
+                        if (pending_tatal_leave.has(employee_ids[i])) {
+
+                            let p_t_map = pending_tatal_leave.get(employee_ids[i]);
+                            let pending_val = p_t_map.get("P");
+                            let consume_val = p_t_map.get("C");
+                            pending_val = pending_val + (total_leave - leave_count);
+                            consume_val = consume_val + leave_count;
+
+                            p_t_map.set("P", pending_val);
+                            p_t_map.set("C", consume_val);
+
+                            pending_tatal_leave.set(employee_ids[i], p_t_map);
+
+                        } else {
+
+                            let p_t_map = new Map();
+                            let pending_val = 0;
+                            let consume_val = 0;
+                            pending_val = pending_val + (total_leave - leave_count);
+                            consume_val = consume_val + leave_count;
+
+                            p_t_map.set("P", pending_val);
+                            p_t_map.set("C", consume_val);
+
+                            pending_tatal_leave.set(employee_ids[i], p_t_map);
+
+                        }
+
+
+
+
+                    }
+                    columns_values = columns_values + "</tr>";
+                }
+
+
+
+                var total_row = "<tr>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td>total</td>" +
+                    "<td>" + pending_tatal_leave.get("ALL") + "</td>";
 
                 for (let i = 0; i < employee_ids.length; i++) {
 
-                    let map_leave = emp_leave_values.get(employee_ids[i]);
+                    let pending_total_l = pending_tatal_leave.get(employee_ids[i]);
 
-                    let leave_count = 0;
-                    for (let [date, detail_map] of map_leave) {
+                    let P = pending_total_l.get("P");
+                    let T = pending_total_l.get("C");
 
-                        if (detail_map.get(E003_LeaveCalendar.leave_db_id) == id_leave) {
-                            leave_count++
-                        }
-
-                    }
-
-                    let panding_takes = "";
-                    if ((total_leave - leave_count) > 0) {
-                        panding_takes = panding_takes + "P:" + (total_leave - leave_count) + ",";
-                    }
-
-
-                    panding_takes = panding_takes + " T:" + (leave_count)
-
-                    columns_values = columns_values + "<td>" + panding_takes + "</td>";
-
-                    if (pending_tatal_leave.has(employee_ids[i])) {
-
-                        let p_t_map = pending_tatal_leave.get(employee_ids[i]);
-                        let pending_val = p_t_map.get("P");
-                        let consume_val = p_t_map.get("C");
-                        pending_val = pending_val + (total_leave - leave_count);
-                        consume_val = consume_val + leave_count;
-
-                        p_t_map.set("P", pending_val);
-                        p_t_map.set("C", consume_val);
-
-                        pending_tatal_leave.set(employee_ids[i], p_t_map);
-
-                    } else {
-
-                        let p_t_map = new Map();
-                        let pending_val = 0;
-                        let consume_val = 0;
-                        pending_val = pending_val + (total_leave - leave_count);
-                        consume_val = consume_val + leave_count;
-
-                        p_t_map.set("P", pending_val);
-                        p_t_map.set("C", consume_val);
-
-                        pending_tatal_leave.set(employee_ids[i], p_t_map);
-
-                    }
-
-
-
+                    total_row = total_row + "<td>" + "P:" + P + ", T:" + T + "</td> ";
 
                 }
-                columns_values = columns_values + "</tr>";
-            }
+                total_ror = total_row + "</tr>";
+
+                columns_values = columns_values + total_row;
+
+                //////////////////////////////////////////////////WO NO/////////////////////////////////////////////
+
+                var empty_row1 = "<tr>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td>  </td>";
+
+                for (let i = 0; i < employee_ids.length; i++) {
+
+                    empty_row1 = empty_row1 + "<td>   </td> ";
+
+                }
+                empty_row1 = empty_row1 + "</tr>";
+
+                columns_values = columns_values + empty_row1;
+
+                var empty_row2 = "<tr>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td>  </td>";
+
+                for (let i = 0; i < employee_ids.length; i++) {
+
+                    empty_row2 = empty_row2 + "<td>   </td> ";
+
+                }
+                empty_row2 = empty_row2 + "</tr>";
+
+                columns_values = columns_values + empty_row2;
+
+                var Week_off_row = "<tr>" +
+                    "<td>WO</td>" +
+                    "<td>Week Off</td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td>  </td>";
+
+                for (let i = 0; i < employee_ids.length; i++) {
+
+                    let week_off_count = 0;
+
+                    // console.log("leave_values");
+                    // console.log(leave_values);
+
+                    if (emp_leave_values.has(employee_ids[i])) {
+                        let map_of_leave = emp_leave_values.get(employee_ids[i]);
+
+
+                        for (let [date, val] of map_of_leave) {
 
 
 
-            var total_row = "<tr>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td>total</td>" +
-                "<td>" + pending_tatal_leave.get("ALL") + "</td>";
-
-            for (let i = 0; i < employee_ids.length; i++) {
-
-                let pending_total_l = pending_tatal_leave.get(employee_ids[i]);
-
-                let P = pending_total_l.get("P");
-                let T = pending_total_l.get("C");
-
-                total_row = total_row + "<td>" + "P:" + P + ", T:" + T + "</td> ";
-
-            }
-            total_ror = total_row + "</tr>";
-
-            columns_values = columns_values + total_row;
-
-            //////////////////////////////////////////////////WO NO/////////////////////////////////////////////
-
-            var empty_row1 = "<tr>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td>  </td>";
-
-            for (let i = 0; i < employee_ids.length; i++) {
-
-                empty_row1 = empty_row1 + "<td>   </td> ";
-
-            }
-            empty_row1 = empty_row1 + "</tr>";
-
-            columns_values = columns_values + empty_row1;
-
-            var empty_row2 = "<tr>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td>  </td>";
-
-            for (let i = 0; i < employee_ids.length; i++) {
-
-                empty_row2 = empty_row2 + "<td>   </td> ";
-
-            }
-            empty_row2 = empty_row2 + "</tr>";
-
-            columns_values = columns_values + empty_row2;
-
-            var Week_off_row = "<tr>" +
-                "<td>WO</td>" +
-                "<td>Week Off</td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td>  </td>";
-
-            for (let i = 0; i < employee_ids.length; i++) {
-
-                let week_off_count = 0;
-
-                // console.log("leave_values");
-                // console.log(leave_values);
-
-                if (emp_leave_values.has(employee_ids[i])) {
-                    let map_of_leave = emp_leave_values.get(employee_ids[i]);
-
-
-                    for (let [date, val] of map_of_leave) {
-
-
-
-                        if (val.get("leave_type") == getCode(E000_Constants.week_off)) {
-                            week_off_count++;
+                            if (val.get("leave_type") == getCode(E000_Constants.week_off)) {
+                                week_off_count++;
+                            }
                         }
                     }
+
+
+                    Week_off_row = Week_off_row + "<td> " + week_off_count + "  </td> ";
+
                 }
+                Week_off_row = Week_off_row + "</tr>";
+
+                columns_values = columns_values + Week_off_row;
 
 
-                Week_off_row = Week_off_row + "<td> " + week_off_count + "  </td> ";
+                var night_off_row = "<tr>" +
+                    "<td>NO</td>" +
+                    "<td>Night Off</td>" +
+                    "<td> </td>" +
+                    "<td> </td>" +
+                    "<td>  </td>";
 
-            }
-            Week_off_row = Week_off_row + "</tr>";
+                for (let i = 0; i < employee_ids.length; i++) {
 
-            columns_values = columns_values + Week_off_row;
+                    let night_off_count = 0;
 
+                    // console.log("leave_values");
+                    // console.log(leave_values);
 
-            var night_off_row = "<tr>" +
-                "<td>NO</td>" +
-                "<td>Night Off</td>" +
-                "<td> </td>" +
-                "<td> </td>" +
-                "<td>  </td>";
-
-            for (let i = 0; i < employee_ids.length; i++) {
-
-                let night_off_count = 0;
-
-                // console.log("leave_values");
-                // console.log(leave_values);
-
-                if (emp_leave_values.has(employee_ids[i])) {
-                    let map_of_leave = emp_leave_values.get(employee_ids[i]);
+                    if (emp_leave_values.has(employee_ids[i])) {
+                        let map_of_leave = emp_leave_values.get(employee_ids[i]);
 
 
-                    for (let [date, val] of map_of_leave) {
+                        for (let [date, val] of map_of_leave) {
 
 
 
-                        if (val.get("leave_type") == getCode(E000_Constants.night_off)) {
-                            night_off_count++;
+                            if (val.get("leave_type") == getCode(E000_Constants.night_off)) {
+                                night_off_count++;
+                            }
                         }
                     }
+
+
+                    night_off_row = night_off_row + "<td> " + night_off_count + "  </td> ";
+
                 }
+                night_off_row = night_off_row + "</tr>";
+
+                columns_values = columns_values + night_off_row;
 
 
-                night_off_row = night_off_row + "<td> " + night_off_count + "  </td> ";
-
-            }
-            night_off_row = night_off_row + "</tr>";
-
-            columns_values = columns_values + night_off_row;
+                res.send(style_title_head1 + table_column_name + columns_values + data_tale4);
 
 
-            res.send(style_title_head1 + table_column_name + columns_values + data_tale4);
-
+            }).catch((err) => {
+                console.log(err);
+            })
 
         }).catch((err) => {
             console.log(err);
         })
 
-    }).catch((err) => {
-        console.log(err);
-    })
 
-    
-});
+    });
 
 
 function getMapOfString(string_map) {
@@ -2500,24 +2512,24 @@ async function get_3_employeeInCurrentShift(hospital_ID_path, unit, date, shift_
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////start shift
 
-    
+
     // console.log("");
     // console.log("111111111111111111111111111111111111111111111111111111111111");
 
     let list_of_emp2 = new Set();
     let yearmonth = "" + parseInt(parseInt(date) / 100);
-    
+
     // console.log("yearmonth: "+yearmonth);
     // console.log("yearmonth: "+SHIFT_MAP.has(yearmonth));
-    
-    if(SHIFT_MAP.has(yearmonth)){
+
+    if (SHIFT_MAP.has(yearmonth)) {
         let employeeMap = SHIFT_MAP.get(yearmonth);
         for (let [employee_id, emp_val] of employeeMap) {
-    
+
             // console.log("emp: "+emp_val.has(""+date));
 
-            if (emp_val.has(""+date)) {
-                let data_set = employeeMap.get(""+date);
+            if (emp_val.has("" + date)) {
+                let data_set = employeeMap.get("" + date);
                 for (let shift_skill_attendance of data_set) {
                     let shift = parseInt(shift_skill_attendance.split("_")[0]);
                     if (shift == shift_intValue) {
@@ -2620,7 +2632,7 @@ async function get_employee_in_3day_continue_leave(hospital_ID_path, unit, date)
     //         console.log('getListOfEmptyShiftOfDay: ' + error);
     //     })
 
-   
+
 
 
 
@@ -2630,7 +2642,7 @@ async function get_employee_in_3day_continue_leave(hospital_ID_path, unit, date)
         let emp_leave_count1 = new Map();
 
         let doc = get_Paramiters_with_conditions(parseInt('' + date), day_increment_int(date, 2));
-        
+
         if (doc.length > 0) {
             for (let leave of doc) {
                 let employee_id = leave[E003_LeaveCalendar.employee_id];
@@ -2700,7 +2712,7 @@ async function get_7_employeeInTodayShift(hospital_ID_path, unit, date) {
     let employeeMap = roster_map.get(year);
     for (let [employee_id, emp_val] of employeeMap) {
 
-        if (emp_val.has(""+date)) {
+        if (emp_val.has("" + date)) {
             list_of_emp2.add(employee_id);
         }
     }
@@ -2828,14 +2840,14 @@ async function step1_get_elegible_employees_for_shift(hospital_ID_path, date, un
     ////////////////////////////////////////////////////////////////////////////////////////////////////start shift
 
     try {
-        
+
         let yearmonth2 = "" + parseInt(date / 100);
         if (SHIFT_MAP.has(yearmonth2)) {
             let employeeMap2 = SHIFT_MAP.get(yearmonth2);
             for (let [employee_id, emp_val] of employeeMap2) {
 
-                if (emp_val.has(""+date)) {
-                    let data_set = emp_val.get(""+date);
+                if (emp_val.has("" + date)) {
+                    let data_set = emp_val.get("" + date);
                     for (let shift_skill_attendance of data_set) {
                         let shift = parseInt(shift_skill_attendance.split("_")[0]);
                         if (shift == shift_type) {
@@ -2892,9 +2904,9 @@ async function step1_get_elegible_employees_for_shift(hospital_ID_path, date, un
 
         // console.log("leave 1111111111111111111111111111111111111111111111111111111111");
 
-       // let rejected_employee1 = new Set();
+        // let rejected_employee1 = new Set();
 
-        let doc = get_Paramiters_with_conditions( date, date);
+        let doc = get_Paramiters_with_conditions(date, date);
 
         // console.log("date1 " + date);
         // console.log("date2 " + date);
@@ -2967,10 +2979,17 @@ async function step1_1_get_employee_request(hospital_ID_path, date, unit_id, ski
     await ref_emp
         .where(E001_Employee.skills, '==', skill)
         .where(E001_Employee.unit_id, '==', unit_id)
-        .where(E001_Employee.connected_Employee_id, '!=', 'X')
         .get()
         .then((doc) => {
             doc.forEach((request) => {
+
+                let connection_type = request.get(E001_Employee.connected_Employee_id);
+
+
+                if(E001_Employee.connected_Employee_id != 'X'){
+
+                
+
                 let id = request.get(E001_Employee.ID);
                 let partner_employee = request.get(E001_Employee.connected_Employee_id);
                 let connection_type = request.get(E001_Employee.connection_type);
@@ -3008,7 +3027,7 @@ async function step1_1_get_employee_request(hospital_ID_path, date, unit_id, ski
 
                 let faund = false;
 
-                if(connected_employee_hospital_id == hospital_ID_path.split("/")[1]){
+                if (connected_employee_hospital_id == hospital_ID_path.split("/")[1]) {
                     if (SHIFT_MAP.has(yearMonth)) {
                         let employeeMap = SHIFT_MAP.get(yearMonth);
                         if (employeeMap.has(partner_employee)) {
@@ -3018,14 +3037,14 @@ async function step1_1_get_employee_request(hospital_ID_path, date, unit_id, ski
                                 for (let shift_skill_attendance of set_data) {
                                     let shift_db = parseInt(shift_skill_attendance.split("_")[0]);
                                     if (shift_db == shift_type) {
-                                       
+
                                         faund = true;
                                     }
                                 }
                             }
                         }
                     }
-    
+
                     if (faund) {
                         if (connection_type == getCode(E000_Constants.Even_conn)) {
                             connected_employee_requesting.add(id);
@@ -3039,14 +3058,14 @@ async function step1_1_get_employee_request(hospital_ID_path, date, unit_id, ski
                             connected_employee_requesting.add(id);
                         }
                     }
-    
-                }else{
 
-//this section will be coverd soon...   request for other section employee
+                } else {
+
+                    //this section will be coverd soon...   request for other section employee
 
                 }
 
-               
+
 
                 // console.log("555555555555555555555555555555555555555555555555555555555555555555555555");
                 // console.log('data Check: step1_1_get_employee_request');
@@ -3073,7 +3092,7 @@ async function step1_1_get_employee_request(hospital_ID_path, date, unit_id, ski
 
                 /////////////////////////////////////////////////////////////////////////////////////////////////////end shift
 
-
+            }
 
             })
         }).catch((err) => {
@@ -3163,12 +3182,12 @@ async function step1_2_get_employee_shifting_position_score(hospital_ID_path, da
             if (date_value.has("" + date)) {
 
                 let date_set = date_value.get("" + date);
-            
+
                 for (let date_val of date_set) {
                     let val_shift = date_val.split("_")[0];
                     let val_skill = date_val.split("_")[1];
                     let val_Attend = date_val.split("_")[2];
-                    if (val_skill ==skill) {
+                    if (val_skill == skill) {
                         employee_present_date.add(employee_id);
                     }
                 }
@@ -3217,7 +3236,7 @@ async function step1_2_get_employee_shifting_position_score(hospital_ID_path, da
     ////////////////////////////////////////////////////////////////////////////////////////////////////start shift
 
     let employee_yesterday = new Set();
-    let yearMonth2 =""+ parseInt(parseInt(yesterday_date) / 100);
+    let yearMonth2 = "" + parseInt(parseInt(yesterday_date) / 100);
 
     if (SHIFT_MAP.has(yearMonth2)) {
         let employee_map = SHIFT_MAP.get(yearMonth2);
@@ -3277,13 +3296,13 @@ async function step1_2_get_employee_shifting_position_score(hospital_ID_path, da
 function mapGetEmployeeShiftList(employeeId, startDate, endDate) {
 
     let shift_list = [];
-    try{
+    try {
         let start_D = parseInt(startDate);
         let end_D = parseInt(endDate);
 
         for (let [year, employee_map] of SHIFT_MAP) {
-        
-            if(employee_map.has(employeeId)){
+
+            if (employee_map.has(employeeId)) {
 
                 let date_map = employee_map.get(employeeId);
 
@@ -3305,7 +3324,7 @@ function mapGetEmployeeShiftList(employeeId, startDate, endDate) {
                 }
             }
         }
-    }catch(e){
+    } catch (e) {
         console.log(e);
     }
 
@@ -3383,10 +3402,10 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
                 console.log(err);
             })
 
-            // console.log("employee_priority : ", employee_priority);
+        // console.log("employee_priority : ", employee_priority);
 
         // counting working hours....................
-        
+
 
         let past_30_date = day_increment_int(today_date, -30);
 
@@ -3427,11 +3446,11 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
         ////////////////////////////////////////////////////////////////////////////////////////////////////start shift
 
 
-        let list_of_shift = mapGetEmployeeShiftList(employee_id,past_30_date ,today_date );
-        
+        let list_of_shift = mapGetEmployeeShiftList(employee_id, past_30_date, today_date);
+
         // console.log("list_of_shift : ", list_of_shift);
 
-        
+
         for (let shift_type of list_of_shift) {
 
             let shift_type_int = parseInt(shift_type);
@@ -3446,7 +3465,7 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
                 duration = duration_map.get(getCode(E000_Constants.evening_shift));
             } else if (shift_type_int == getIntValue(E000_Constants.day_shift)) {
                 duration = duration_map.get(getCode(E000_Constants.day_shift));
-            }else{
+            } else {
                 duration = parseInt(duration_map.get(shift_type));
             }
 
@@ -3466,7 +3485,7 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
 
 
         ///// contiing max_week_shift  week off counting ..................
-        
+
         let count_past_max_shift = 0;
         let past_max_shift_date = day_increment_int(today_date, (-1 * maximum_shift_in_a_week));
 
@@ -3524,7 +3543,7 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
         if (parseInt(shift_type) == getIntValue(E000_Constants.day_shift)) {
             // after night shift morning shift have low priority
 
-           
+
             let past_max_shift_date = day_increment_int(today_date, -1);
 
             let if_week_off_present = false;
@@ -3558,7 +3577,7 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
             try {
 
                 let doc = get_Paramiters_with_conditions(parseInt(past_max_shift_date), past_max_shift_date);
-                
+
 
                 if (doc.length > 0) {
                     for (let leave of doc) {
@@ -3592,7 +3611,7 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
 
 
             if (if_week_off_present) {
-               
+
                 let past_max_shift_date = day_increment_int(today_date, -2);
 
                 let if_night_off_present = false;
@@ -3617,13 +3636,13 @@ async function step2_get_employee_score(hospital_ID_path, elegible_employee, req
                 //################################################################################### leave map start
 
                 try {
-                    
+
                     // console.log("leave 333333333333333333333333333333333333333333333333333333333");
-                    
+
                     let doc = get_Paramiters_with_conditions(parseInt(past_max_shift_date), past_max_shift_date);
-                    
+
                     // console.log("leave: "+ doc.length);
-                    
+
                     if (doc.length > 0) {
                         for (let leave of doc) {
                             let employee_id_db = leave[E003_LeaveCalendar.employee_id];
@@ -3777,21 +3796,23 @@ async function make_shift_roster(hospital_ID_path, date, unit_id, skill, shift_t
     //         console.log(err);
     //     });
     ///////////////////////////////////////////////////////////////////////////////////////////////start shift
-    
+
     try {
-        
+
         let yearMonth = "" + parseInt(parseInt(date) / 100);
         if (SHIFT_MAP.has(yearMonth)) {
             for (let [emp_id, date_value] of SHIFT_MAP.get(yearMonth)) {
-                if (date_value.has(""+date)) {
-                    for (let shift_skill_atten of date_value.get(""+date)) {
+                if (date_value.has("" + date)) {
+                    for (let shift_skill_atten of date_value.get("" + date)) {
                         let shift_db = shift_skill_atten.split("_")[0];
                         let skill_db = shift_skill_atten.split("_")[1];
+
                         if (parseInt(shift_db) == parseInt(shift_type)) {
                             if (skill_db == skill) {
                                 shifted_employee = shifted_employee + 1;
                             }
                         }
+
                     }
                 }
             }
@@ -3916,14 +3937,14 @@ async function make_shift_roster(hospital_ID_path, date, unit_id, skill, shift_t
     for (let [emp_id, wo_count] of moreThan3WO) {
         if (employee_score.has(emp_id)) {
 
-            if(wo_count > 2){
+            if (wo_count > 2) {
                 let score = getWaight(W000_Constants.more_than3_wo) + employee_score.get(emp_id);
                 employee_score.set(emp_id, score);
             }
 
         }
     }
-    
+
 
 
     ///////Adding requested employee score in total employee score
@@ -4053,12 +4074,12 @@ async function check_week_off_elegibility_and_allot_week_off(hospital_ID_path, m
     try {
 
         let shift_data = SHIFT_MAP;
-        
+
         let dateYear = "" + parseInt(date / 100);
         if (shift_data.has(dateYear)) {
             let employeeMap = shift_data.get(dateYear);
             for (let [emp_id, date_map] of employeeMap) {
-                if (date_map.has(""+date)) {
+                if (date_map.has("" + date)) {
                     shifted_employee.add(emp_id);
                 }
             }
@@ -4239,7 +4260,7 @@ async function preProcessingEmployeeShift_updated(hospital_ID_path, unit_id) {
 }
 
 async function make_day_shift_roster(
-    hospital_ID_path, unit_id, starting_date, ending_date, 
+    hospital_ID_path, unit_id, starting_date, ending_date,
     total_number_of_employee_scheme, day_shift_employee, evening_shift_employee, maximum_shift_in_a_week, shift_duration_map) {
 
 
@@ -4298,8 +4319,6 @@ async function make_day_shift_roster(
             date1 = (starting_date_d.getFullYear() * 10000 + ((starting_date_d.getMonth() + 1) * 100 + starting_date_d.getDate()));
             //console.log(date1);
 
-
-
             // day shift map
             for (let [skill, emp_number] of day_shift_map) {
                 await make_shift_roster(hospital_ID_path, date1, unit_id, skill, getIntValue(E000_Constants.day_shift), emp_number, day_shift_duration, starting_date, ending_date, maximum_shift_in_a_week, shift_duration_map);
@@ -4309,8 +4328,6 @@ async function make_day_shift_roster(
             for (let [skill, emp_number] of evening_shift_map) {
                 await make_shift_roster(hospital_ID_path, date1, unit_id, skill, getIntValue(E000_Constants.evening_shift), emp_number, evening_shift_duration, starting_date, ending_date, maximum_shift_in_a_week, shift_duration_map);
             }
-
-
 
             await check_week_off_elegibility_and_allot_week_off(hospital_ID_path, maximum_shift_in_a_week, unit_id, date1);
 
@@ -4929,7 +4946,7 @@ async function step3_getEmployeeWithWorkingHour_PastNightShifting(hospital_ID_pa
                                 let skill_DB = data.split("_")[1];
 
                                 if ((skill_DB == skill) & (parseInt(shift_DB) == getIntValue(E000_Constants.night_shift))) {
-                                    
+
                                     if (list_of_employees_nightShift_sequense.has(emp_id)) {
 
                                         let w = list_of_employees_nightShift_sequense.get(emp_id);
@@ -5080,8 +5097,8 @@ async function step3_getEmployeeWithWorkingHour_PastNightShifting(hospital_ID_pa
                                 duration = duration_map.get(getCode(E000_Constants.evening_shift));
                             } else if (shift_type_int == getIntValue(E000_Constants.day_shift)) {
                                 duration = duration_map.get(getCode(E000_Constants.day_shift));
-                            } else{
-                                    duration = parseInt(duration_map.get(shift_type));
+                            } else {
+                                duration = parseInt(duration_map.get(shift_type));
                             }
 
                             if (list_of_employees_nightShift_sequense.has(id)) {
@@ -6632,14 +6649,11 @@ async function make_night_and_day_shift_roaster(
             //     .catch((error) => {
             //         console.log('getListOfEmptyShiftOfDay: ' + error);
             //     })
-
-
-
             ///////////////////////////////////////////////////////////////////////////////start shift
 
             try {
-                let shift_data = SHIFT_MAP;
 
+                let shift_data = SHIFT_MAP;
 
                 let skill_date_numberOfEmployeePresentOnDate1 = new Map();
 
@@ -6915,11 +6929,8 @@ async function getRostrAndLeaveMap(hospital_ID_path, strting_date, ending_date, 
     let ending_year = parseInt(parseInt("" + ending_date) / 10000);
     let ending_month = parseInt((parseInt("" + ending_date) - ending_year * 10000) / 100);
 
-
     let past_year;
     let past_month;
-
-
 
     if (starting_month <= 4) {
         past_month = 12 + starting_month - 4;
@@ -6941,14 +6952,13 @@ async function getRostrAndLeaveMap(hospital_ID_path, strting_date, ending_date, 
         .where(E002_Roaster.yearMonth, "<=", endingYearMonthToMakeMap)
         .get()
         .then((v) => {
-
             v.forEach((roaster) => {
 
                 let roster_string = roaster.get(E002_Roaster.roster);
                 let rostrMap = getRoasterStringToMap(roster_string);
                 let yearMonth = roaster.get(E002_Roaster.yearMonth);
 
-                rostrSuperMap.set( ""+yearMonth, rostrMap);
+                rostrSuperMap.set("" + yearMonth, rostrMap);
             })
         })
         .catch((e) => {
@@ -7018,7 +7028,7 @@ async function setRoasterAndLeaveMap(hospital_ID_path, unit_id) {
 
 
             let year = parseInt(parseInt(yearMonth) / 100);
-            let month = parseInt(parseInt(yearMonth) - year * 100);
+            let month = parseInt(parseInt(yearMonth) - (year * 100));
 
             let roster = getRoasterMapToString(employee_id_value);
 
@@ -7120,12 +7130,12 @@ async function setRoasterAndLeaveMap(hospital_ID_path, unit_id) {
 }
 
 
-function getShiftTimeMap(shift_starting_time){
+function getShiftTimeMap(shift_starting_time) {
 
     let str = shift_starting_time.split(";");
 
     let map_duration = new Map();
-    for(let s of str){
+    for (let s of str) {
         let code = s.split("=")[0];
         let time = s.split("=")[1];
         map_duration.set(code, time);
@@ -7142,7 +7152,7 @@ function getEndingDateOfMonth(yearMonth) {
 
     var lastDay = new Date();
     lastDay.setFullYear(starting_date.substring(0, 4));
-    lastDay.setMonth((starting_date.substring(4, 6) ));
+    lastDay.setMonth((starting_date.substring(4, 6)));
     lastDay.setDate(0);
 
 
@@ -7155,14 +7165,14 @@ function getStartingDateOfMonth(yearMonth) {
 
     var lastDay = new Date();
     lastDay.setFullYear(starting_date.substring(0, 4));
-    lastDay.setMonth((parseInt(starting_date.substring(4, 6)) -1));
+    lastDay.setMonth((parseInt(starting_date.substring(4, 6)) - 1));
     lastDay.setDate(1);
 
 
     return lastDay.toISOString();
 }
 
-async function setRoasterDBForFrontEnd(hospital_ID_path, unit_id, starting_date, ending_date){
+async function setRoasterDBForFrontEnd(hospital_ID_path, unit_id, starting_date, ending_date) {
 
     try {
 
@@ -7190,7 +7200,7 @@ async function setRoasterDBForFrontEnd(hospital_ID_path, unit_id, starting_date,
             let roster = getRoasterDBDecoder(employee_id_value, shift_starting_time_map);
 
 
-            
+
             let data = {
                 'data': roster,
                 'endDate': getEndingDateOfMonth(yearMonth),
@@ -7198,8 +7208,8 @@ async function setRoasterDBForFrontEnd(hospital_ID_path, unit_id, starting_date,
                 'isFinal': false,
                 'startDate': getStartingDateOfMonth(yearMonth),
 
-                'yearMonth':parseInt(yearMonth),
-                'month':parseInt(month)
+                'yearMonth': parseInt(yearMonth),
+                'month': parseInt(month)
             };
 
             await ref_roster.get()
@@ -7236,81 +7246,128 @@ function get_Paramiters_with_conditions(starting_date, ending_date) {
     ending_date = parseInt(ending_date);
     let list_of_leave = [];
 
-    if(starting_date < ending_date){
-        
-        try{
+    if (starting_date < ending_date) {
+
+        try {
             for (let [emp_id, date_map] of LEAVE_MAP) {
                 for (let [date_db, set_value] of date_map) {
 
                     if (parseInt(date_db) >= starting_date) {
                         if (parseInt(date_db) <= ending_date) {
                             for (let str of set_value) {
-    
+
                                 let obj = {
                                     employee_id: emp_id,
                                     date: parseInt(date_db),
                                     leave_type: str.split("_")[0],
                                     leave_db_id: str.split("_")[1]
                                 };
-    
+
                                 list_of_leave.push(obj);
-    
+
                             }
                         }
                     }
                 }
             }
-            
-        }catch(e){
+
+        } catch (e) {
             console.log(e);
         }
-    }else if(ending_date == ending_date){
-        try{
+    } else if (ending_date == ending_date) {
+        try {
             for (let [emp_id, date_map] of LEAVE_MAP) {
-                    if(date_map.has(""+ending_date)){
-                        set_value = date_map.get(""+ending_date);
-                        for (let str of set_value) {
-    
-                            let obj = {
-                                employee_id: emp_id,
-                                date: parseInt(ending_date),
-                                leave_type: str.split("_")[0],
-                                leave_db_id: str.split("_")[1]
-                            };
+                if (date_map.has("" + ending_date)) {
+                    set_value = date_map.get("" + ending_date);
+                    for (let str of set_value) {
 
-                            list_of_leave.push(obj);
+                        let obj = {
+                            employee_id: emp_id,
+                            date: parseInt(ending_date),
+                            leave_type: str.split("_")[0],
+                            leave_db_id: str.split("_")[1]
+                        };
 
-                        }
+                        list_of_leave.push(obj);
+
                     }
+                }
             }
-            
-        }catch(e){
+
+        } catch (e) {
             console.log(e);
         }
     }
 
-    
 
 
-  //  console.log(list_of_leave);
+
+    //  console.log(list_of_leave);
 
 
     return list_of_leave;
+}
+
+function check_the_starting_ending_date(strting_date, ending_date){
+    
+    let starting_year =parseInt( (parseInt(strting_date)/10000));
+    let ending_year = parseInt((parseInt(ending_date)/10000));
+
+    console.log("year: "+starting_year+"  "+ending_year);
+
+    if((parseInt(ending_date) < parseInt(strting_date))){
+        console.log("1 Not posible: starting date is greater than ending date");
+        return false;
+    }
+   
+    if((ending_year - starting_year) > 2){
+        console.log("2 Not posible: more than limit days");
+        return false;
+    }
+
+    let starting_month =parseInt(parseInt( parseInt(strting_date) - starting_year*10000)/100);
+    let ending_month = parseInt(parseInt(parseInt(ending_date) - ending_year*10000)/100);
+
+    console.log("month: "+starting_month+"  "+ending_month);
+
+    if(ending_year == starting_year){
+        if((ending_month - starting_month) > 4 ){
+            console.log("3 Not posible: more than limit days");
+            return false;
+        }
+    }else if(ending_year > starting_year){
+
+        if((12 + ending_month - starting_month) > 4 ){
+            console.log("4 Not posible: more than limit days");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 let SHIFT_MAP;/* <yearMonth : <employee_id: <date:[set]>>> */
 let LEAVE_MAP;/* <employee_id : <date:[data_set]>> */
 async function makeRoster(hospital_ID_path, strting_date, ending_date, unit_id) {
 
+    //await RosterStatusStart(unit_id, hospital_ID_path);
     const ref_unit = admin.firestore().collection(hospital_ID_path + E005_Unit.E005_Unit).doc(unit_id);
 
 
-    // let ROSTER_MAP = new Map();
+   if(!check_the_starting_ending_date(strting_date, ending_date)){
+        return; 
+   }
+
 
     await getRostrAndLeaveMap(hospital_ID_path, strting_date, ending_date, unit_id);
 
-    // console.log(SHIFT_MAP);
-    // console.log(LEAVE_MAP);
+    await getEmployeeRequestFromChoises(unit_id,  hospital_ID_path);
+
+    // let ROSTER_MAP = new Map();
+
+
+    //  console.log(SHIFT_MAP);
+    //  console.log(LEAVE_MAP);
 
 
     var maximum_number_of_night_shift = 0;
@@ -7410,8 +7467,9 @@ async function makeRoster(hospital_ID_path, strting_date, ending_date, unit_id) 
 
     await setRoasterAndLeaveMap(hospital_ID_path, unit_id);
 
-    await setRoasterDBForFrontEnd(hospital_ID_path, unit_id,  strting_date, ending_date);
+    await setRoasterDBForFrontEnd(hospital_ID_path, unit_id, strting_date, ending_date);
 
+    await RosterStatusEnd(unit_id, hospital_ID_path);
 }
 
 async function getEmployeeShift(hospital_ID_path, starting_time, ending_time, unit_id) {
@@ -7602,8 +7660,9 @@ async function getEmployeeRoaster(hospital_ID_path, starting_time, ending_time, 
 
 async function getEmployeeRequest(hospital_ID_path, starting_time, ending_time, unit_id) {
 
-    const shift_list = new Map();/// <employeeID, <Date, [shift_type]>>
+    const shift_list = new Map();
 
+    /// <employeeID, <Date, [shift_type]>>
     // const ref = admin.firestore().collection(hospital_ID_path+E004_EmployeRequests.E004_EmployeRequests)
     //     .where(E004_EmployeRequests.unit_id, '==', unit_id)
     //     .where(E004_EmployeRequests.date, '>=', parseInt(starting_time))
@@ -7759,7 +7818,7 @@ async function getEmployeeLeaveDetails(hospital_ID_path, starting_time, ending_t
     await getRostrAndLeaveMap(hospital_ID_path, starting_time, ending_time, unit_id);
     let doc = get_Paramiters_with_conditions(starting_time, ending_time);
 
-    for(shift of doc) {
+    for (shift of doc) {
 
         let date = shift[E003_LeaveCalendar.date];
         let employee_id = shift[E003_LeaveCalendar.employee_id];
@@ -7944,7 +8003,7 @@ async function getEmployeeleave2(hospital_ID_path, starting_time, ending_time, u
 
 
 exports.supervisorUpdate = functions
-    .region('asia-south1')
+    .region('asia-northeast3')
     .runWith({
         // Ensure the function has enough memory and time
         // to process large files
@@ -7982,19 +8041,19 @@ exports.supervisorUpdate = functions
             return makeRoster(pre_path, "" + starting_time, '' + ending_time, unit_id).then(() => {
                 console.log('Roster end!!!!!!!!!!');
             }).catch((err) => {
-                console.log('Roster end Error'+ err);
+                console.log('Roster end Error' + err);
             })
 
         }
 
         else if (usr_prog == 'insert_employee') {
 
-            return insertImployee(unit_id, pre_path).then( (value) => {
+            return insertImployee(unit_id, pre_path).then((value) => {
                 console.log(value);
-            }).catch((e) =>{
+            }).catch((e) => {
                 console.log(e);
             });
-            
+
         }
 
         else if (usr_prog == 'get_employee_request_list') {
@@ -8114,7 +8173,7 @@ exports.supervisorUpdate = functions
 
             const ref = admin.firestore().collection(hospital_ID_path + 'newsletter').doc("usr_prog");
 
-            
+
 
             var data = {
                 "verified": 'insertedgfddgfdfgdfgs',
@@ -8233,7 +8292,7 @@ exports.supervisorUpdate = functions
             });
         }
 
-        else if ("sample_input") {
+        else if (usr_prog == "sample_input") {
             const ref_unit = admin.firestore().collection(hospital_ID_path + E002_Roaster.E002_Roaster).doc("1@5");
 
             ref_unit.get()
@@ -8257,9 +8316,9 @@ exports.supervisorUpdate = functions
 
         }
 
-        else if ("compare_the_shift_and_roasters") {
+        else if (usr_prog == "compare_the_shift_and_roasters") {
             //getRostrAndLeaveMap(hospital_ID_path, starting_time, ending_time, unit_id);
-           
+
             compareShiftAndRoasterDB(hospital_ID_path, starting_time, ending_time, unit_id)
 
         }
@@ -8273,17 +8332,22 @@ exports.supervisorUpdate = functions
 
         }
 
+        else if (usr_prog == 'get_employee_request_list_by_app') {
+            //return getEmployeeRequestFromChoises(unit_id,  pre_path);
+            return makeShiftAndLeaveMapFromPastEmployee(unit_id, usr_command, hospital_ID_path);
+        }
+
         return Promise.resolve();
 
     });
 
 
-async function insertImployee(unit_id, pre_path){
+async function insertImployee(unit_id, pre_path) {
 
     //console.log('program_command : ' + usr_prog);
 
     //const unit_id = unit_id;
-    
+
     const senior_emp_number = 4;
     const junior_emp_number = 4;
     const number_of_senior_and_junior = 2;
@@ -8315,7 +8379,7 @@ async function insertImployee(unit_id, pre_path){
                 'day_shift_employee': 'S:1,J:2',
                 'evening_shift_employee': 'S:1,J:1',
                 'night_shift_employee': 'S:1,J:1',
-                'fixed_working_hour': 206,
+                'fixed_working_hour': 294,
                 'roster_rules': '1:4,2:6',
                 'EditFlagRow': 'EE',
                 'roaster_last_starting_date': 20210101,
@@ -8332,13 +8396,13 @@ async function insertImployee(unit_id, pre_path){
             }
         })
         .catch((err) => {
-            console.log("insert_employee: Error: " , err);
+            console.log("insert_employee: Error: ", err);
         });
 
     var emps = getListOfEmployees(senior_emp_number, junior_emp_number, trainee, unit_id, number_of_senior_and_junior);
 
-    for(let employee of emps){
-        let  ref = admin.firestore().collection(pre_path + 'E001_Employee').doc(employee.get(E001_Employee.ID));
+    for (let employee of emps) {
+        let ref = admin.firestore().collection(pre_path + 'E001_Employee').doc(employee.get(E001_Employee.ID));
 
         //console.log('employee :  ' + employee);
 
@@ -8367,13 +8431,13 @@ async function insertImployee(unit_id, pre_path){
                 };
 
                 if (doc.exists) {
-                   ref.update(data)
+                    ref.update(data)
                 } else {
-                   ref.set(data)
+                    ref.set(data)
                 }
             })
             .catch((err) => {
-                console.log("insert_employee: Error: " , err);
+                console.log("insert_employee: Error: ", err);
             });
 
     };
@@ -8381,10 +8445,10 @@ async function insertImployee(unit_id, pre_path){
 
     var employee_leaves = getListOfLeave(unit_id);
 
-    for(let leave of employee_leaves ){
+    for (let leave of employee_leaves) {
         const ref = admin.firestore().collection(pre_path + E008_LeaveDB.E008_LeaveDB).doc(leave.get(E008_LeaveDB.ID));
 
-       await ref.get()
+        await ref.get()
             .then((doc) => {
 
 
@@ -8410,7 +8474,7 @@ async function insertImployee(unit_id, pre_path){
                 }
             })
             .catch((err) => {
-                console.log("insert_employee: Error: " , err);
+                console.log("insert_employee: Error: ", err);
             });
     };
 
@@ -8418,6 +8482,533 @@ async function insertImployee(unit_id, pre_path){
 }
 
 
+async function RosterStatusStart(unit_id, pre_path) {
+
+    const ref_unit = admin.firestore().collection(pre_path + "RosterStatus").doc(unit_id);
+
+    await ref_unit.get()
+        .then((doc) => {
+
+            var data = {
+                'isReady': false
+            };
+
+            if (doc.exists) {
+                ref_unit.update(data);
+            } else {
+                ref_unit.set(data);
+            }
+        })
+        .catch((err) => {
+            console.log("RosterStatus : ", err);
+        });
+
+}
+
+
+
+
+function makeMap(shift_duration_map, shift_starting_time) {
+
+
+
+    let shift_starting_dutation_map = new Map();
+
+
+    let shift_starting_time_arr = shift_starting_time.split(";");
+
+    for (shift of shift_starting_time_arr) {
+        let id = shift.split("=")[0];
+        let startingTime = shift.split("=")[1].split("_")[0];
+
+        switch (id) {
+            case '1':
+                shift_starting_dutation_map.set("D", startingTime);
+                break;
+            case '2':
+                shift_starting_dutation_map.set("E", startingTime);
+                break;
+            case '3':
+                shift_starting_dutation_map.set("N", startingTime);
+                break;
+
+            default:
+                shift_starting_dutation_map.set(id, startingTime);
+        }
+
+    }
+
+    let shift_duration_map_arr = shift_duration_map.split(",");
+
+    for (shift of shift_duration_map_arr) {
+        let id = shift.split(":")[0];
+        let startingTime = shift.split(":")[1];
+
+        if (shift_starting_dutation_map.has(id)) {
+            let value = shift_starting_dutation_map.get(id);
+            shift_starting_dutation_map.set(id, value + "_" + startingTime);
+        }
+
+    }
+
+
+    shift_starting_dutation_map.set('1', shift_starting_dutation_map.get('D'));
+    shift_starting_dutation_map.delete('D');
+    shift_starting_dutation_map.set('2', shift_starting_dutation_map.get('E'));
+    shift_starting_dutation_map.delete('E');
+    shift_starting_dutation_map.set('3', shift_starting_dutation_map.get('N'));
+    shift_starting_dutation_map.delete('N');
+
+
+
+    return shift_starting_dutation_map;
+
+}
+
+function getRequestingShiftID(value_arr, shift_starting_dutation_map) {
+
+    let startingTime = parseInt(value_arr[0]);
+
+    let duration = parseInt(value_arr[1]);
+
+    for ([id, value] of shift_starting_dutation_map) {
+
+        let st = parseInt(value.split("_")[0]);
+        let du = parseInt(value.split("_")[1]);
+
+        //console.log("value: "+value+"; st: "+st+";  du :"+du);
+        if ((parseInt(startingTime) == st) && (parseInt(duration) == du)) {
+            return id;
+        }
+    }
+
+}
+
+function getPrimaryShifID(map_of_all_shift, ID) {
+    let m = map_of_all_shift.get('1');
+    //console.log(m);
+    let e = map_of_all_shift.get('2');
+    //console.log(e);
+    let n = map_of_all_shift.get('3');
+    //console.log(n);
+
+    if (map_of_all_shift.has(ID)) {
+
+
+        let value = map_of_all_shift.get(ID);
+
+        switch (value) {
+
+            case m: {
+                return "1";
+            }
+
+            case e: {
+                return "2";
+            }
+
+            case n: {
+                return "3";
+            }
+
+        }
+
+        let endingtime_m = (parseInt(parseInt(m.split("_")[0] / 100) * 60) + m.split("_")[0] % 100 + parseInt(m.split("_")[1]));
+        let endingtime_e = (parseInt(parseInt(e.split("_")[0] / 100) * 60) + e.split("_")[0] % 100 + parseInt(e.split("_")[1]));
+        let endingtime_n = (parseInt(parseInt(n.split("_")[0] / 100) * 60) + n.split("_")[0] % 100 + parseInt(n.split("_")[1]));
+
+
+        let start_dur = value.split("_");
+
+        let start_time = parseInt(start_dur[0]);
+        let duration = parseInt(start_dur[1]);
+
+        let ending_time = (parseInt(start_time / 100) * 60) + start_time % 100 + duration;
+
+        //console.log("ending_time: "+ending_time);
+
+        if (parseInt(n.split("_")[0]) >= start_time) {
+            if (endingtime_m <= ending_time) {
+                return "3";
+            }
+        }
+
+        if (parseInt(e.split("_")[0]) >= start_time) {
+            if (endingtime_e <= ending_time) {
+                return "2";
+            }
+        }
+
+        if (parseInt(m.split("_")[0]) >= start_time) {
+            if (endingtime_n <= ending_time) {
+                return "1";
+            }
+        }
+
+    }
+
+
+}
+
+
+
+async function getEmployeeRequestFromChoises(unit_id, hospital_ID_path) {
+
+    
+
+    const ref_unit = admin.firestore().collection(hospital_ID_path + E005_Unit.E005_Unit).doc(unit_id);
+
+    let shift_duration_map;
+    let shift_starting_time;
+
+    await ref_unit.get().then((unit_doc) => {
+        shift_duration_map = unit_doc.get(E005_Unit.shift_duration_map);
+        shift_starting_time = unit_doc.get(E005_Unit.shift_starting_time);
+    }).catch((error) => {
+        console.log(error);
+    })
+
+    console.log("shift_duration_map : ", shift_duration_map);
+    console.log("shift_starting_time : ", shift_starting_time);
+
+
+    const map_shift_duration = makeMap(shift_duration_map, shift_starting_time);
+
+    console.log("map_shift_duration : ", map_shift_duration);
+
+    const emp_ids_unit = admin.firestore().collection("NursingUser").where("groupId", "==", unit_id);
+
+
+    let list_of_members = new Map(); // <uid, mem_id>
+
+
+    await emp_ids_unit.get()
+        .then((doc) => {
+
+            doc.forEach((nursingUser) => {
+
+                let id = nursingUser.get("id");
+                let m_id = nursingUser.get("memberId");
+                list_of_members.set(id, m_id);
+
+            })
+
+        })
+        .catch((err) => {
+            console.log("RosterStatus : ", err);
+        });
+
+
+    for (let [mem_id, mem] of list_of_members) {
+
+        ///////////////////////////////////////////////////////////////////// employee request list /////////////////////////////////////////////////////////////////////
+
+        const emp_ids_unit_duty_choices = admin.firestore().collection("NursingUser/" + mem_id + "/duty_choices").doc(unit_id + "@" + mem_id);
+
+        let employee_request = "";
+        await emp_ids_unit_duty_choices.get().then((doc) => {
+
+            if(doc.exists){
+
+            
+            console.log((doc.id));
+            //console.log((doc.data()));
+            console.log();
+
+            let choises = doc.data()['choices'];
+
+            const dates = Object.keys(choises);
+
+
+            console.log(dates);
+            console.log("loops");
+
+            let isFirst = true;
+            for (let date of dates) {
+
+                let value = choises[date];
+
+                let d = new Date(date);
+
+                let year = d.getFullYear();
+                let month = d.getMonth() + 1;
+                let day = d.getDate();
+
+                let date_in_formate = year * 10000 + (month * 100 + day);
+
+                console.log(date_in_formate + " : ", value);
+
+                let id = value.split("_")[0];
+
+                // console.log(date_in_formate + " : ", id);
+
+                //df dfdf;
+                let primarryId = getPrimaryShifID(map_shift_duration, id);
+
+                console.log(date_in_formate + " : ", id + "   " + primarryId);
+
+                if (primarryId != undefined) {
+
+                    console.log("if condition : " + date_in_formate + " : ", id + "   " + primarryId);
+                    if (isFirst) {
+                        employee_request += date_in_formate + "@" + primarryId;
+                        isFirst = false;
+                    } else {
+                        employee_request += "," + date_in_formate + "@" + primarryId;
+                    }
+                }
+            }
+        }
+        }).catch((err) => {
+                console.log("RosterStatus : ", err);
+        })
+
+
+        const ref = admin.firestore().collection(hospital_ID_path + E001_Employee.E001_Employee)
+        .where(E001_Employee.user_id, "==", mem_id);
+
+
+        if(employee_request.length > 2){
+
+        
+
+        let skills = "" ;
+        let employee_id = "";
+        await ref.get().then((data) => {
+            data.forEach((employee) => {
+                skills = employee.get(E001_Employee.skills);
+                employee_id = employee.get(E001_Employee.ID);
+            })
+        })
+        .catch((err) => {
+            console.log("Error: " + err);
+        });
+
+        console.log("employee_id : "+employee_id);
+        console.log("skills : "+skills);
+        console.log("dateShiftList : "+employee_request);
+
+        
+
+        const ref_emp = admin.firestore().collection(hospital_ID_path + E004_EmployeRequests.E004_EmployeRequests).doc(employee_id);
+
+        
+        //console.log(request.get(E004_EmployeRequests.ID));
+
+        var data = {
+            'dateShiftList': employee_request,
+            'employee_id': employee_id,
+            'skills': skills,
+            'unit_id': unit_id,
+            'ID': unit_id + "@" + employee_id,
+            'TimeStamp': admin.firestore.FieldValue.serverTimestamp(),
+            'EditFlagRow': "EF"
+        };
+
+        // console.log(data);
+
+
+        await ref_emp.get()
+            .then((snapshot) => {
+                if (snapshot.exists) {
+                    console.log("exist");
+                    ref_emp.update(data).catch((e) => { console.log("existys: " + e) });
+                } else {
+                    console.log("not exists");
+                    ref_emp.set(data).catch((e) => { console.log("existys: " + e) });
+                }
+            })
+            .catch((err) => {
+                console.log("Error: " + err);
+            });
+
+
+       
+        }
+        
+
+
+    }
+
+}
+
+
+async function  makeShiftAndLeaveMapFromPastEmployee(unit_id, yearMonth, hospital_ID_path) {
+
+    //step-1 try to make Shift_map and leave_map 
+    //step-2 make user request and upload to firebase database
+
+    let SHIFT_MAP;/* <yearMonth : <employee_id: <date:[set]>>> ; where: set = <ID_Seniority_level_N> ; date = [YYYYMMDD]*/
+    let LEAVE_MAP;/* <employee_id : <date:[data_set]>> ; where data_set = [[abbreviation]]_ID] */
+
+
+    const ref_unit = admin.firestore().collection(hospital_ID_path + E005_Unit.E005_Unit).doc(unit_id);
+
+    let shift_duration_map;
+    let shift_starting_time;
+
+    await ref_unit.get().then((unit_doc) => {
+        shift_duration_map = unit_doc.get(E005_Unit.shift_duration_map);
+        shift_starting_time = unit_doc.get(E005_Unit.shift_starting_time);
+    }).catch((error) => {
+        console.log(error);
+    })
+
+    console.log("shift_duration_map : ", shift_duration_map);
+    console.log("shift_starting_time : ", shift_starting_time);
+
+
+    const map_shift_duration = makeMap(shift_duration_map, shift_starting_time);
+
+    console.log("map_shift_duration : ", map_shift_duration);
+
+    const emp_ids_unit = admin.firestore().collection("NursingUser").where("groupId", "==", unit_id);
+
+
+    let list_of_members = new Map(); // <uid, mem_id>
+
+
+    await emp_ids_unit.get()
+        .then((doc) => {
+
+            doc.forEach((nursingUser) => {
+
+                let id = nursingUser.get("id");
+                let m_id = nursingUser.get("memberId");
+                list_of_members.set(id, m_id);
+
+            })
+
+        })
+        .catch((err) => {
+            console.log("RosterStatus : ", err);
+        });
+
+
+        // for([id, id1] of list_of_members){
+        //     console.log("user address : "+id+"  "+id1);
+        // }
+
+
+    /////////////////////////////////////////////////////////////// setting employee past shift ///////////////////////////////////////////////////////////////
+    
+    for (let [mem_id, mem] of list_of_members) {
+
+        console.log("user address : "+"NursingUser/" + mem_id + "/dutyData");
+        const emp_ids_dutyData = admin.firestore().collection("NursingUser/" + mem_id + "/dutyData").doc(yearMonth);
+
+        await emp_ids_dutyData.get().then((doc) => {
+
+            console.log((doc.id));
+            console.log((doc.data()));
+            //console.log(doc.toString);
+
+
+            const arry = Object.keys(doc.data());
+
+
+            console.log("arry: "+arry);
+            console.log("loops");
+            for (let date of arry) {
+
+                let value = doc.data()[date];
+
+                console.log(date + " : ", value);
+
+                // let SHIFT_MAP;/* <yearMonth : <employee_id: <date:[set]>>> ; where: set = <2_J_N> ; date = [YYYYMMDD]*/
+                // let LEAVE_MAP;/* <employee_id : <date:[data_set]>> ; where data_set = [[abbreviation]]_ID] */
+
+
+                if (value.includes("#")) {
+
+                    let value_str = value.split("#");
+                    for (let v of value_str) {
+
+                        let value_arr = v.split("_");
+
+                        if (value_arr.length > 0) {
+
+                            if (value_arr[value_arr.length - 1] == 'false') {
+
+                                let id = getRequestingShiftID(value_arr, map_shift_duration);
+
+                                console.log("id: " + id);
+
+                            }
+                            else if (value_arr[value_arr.length - 1] == 'true') {
+
+                                let abbr = value_arr[value_arr.length - 2];
+
+                                console.log("leave : ", abbr);
+
+
+
+
+                            }
+
+                        }
+                    }
+
+                } else {
+                    let value_arr = value.split("_");
+                    if (value_arr.length > 0) {
+
+                        if (value_arr[value_arr.length - 1] == 'false') {
+
+                            let id = getRequestingShiftID(value_arr, map_shift_duration);
+
+                            console.log(" id: " + id);
+
+                        }
+                        else if (value_arr[value_arr.length - 1] == 'true') {
+
+                            let abbr = value_arr[value_arr.length - 2];
+
+                            console.log("leave : ", abbr);
+
+
+
+                        }
+
+                    }
+
+                }
+
+
+
+            }
+
+        }).catch((err) => {
+            console.log("RosterStatus : ", err);
+        })
+
+    }
+}
+
+
+
+async function RosterStatusEnd(unit_id, pre_path) {
+
+
+    const ref_unit = admin.firestore().collection(pre_path + "RosterStatus").doc(unit_id);
+
+    await ref_unit.get()
+        .then((doc) => {
+
+            var data = {
+                'isReady': true
+            };
+
+            if (doc.exists) {
+                ref_unit.update(data);
+            } else {
+                ref_unit.set(data);
+            }
+        })
+        .catch((err) => {
+            console.log("RosterStatus : ", err);
+        });
+}
 
 function getLeaveStringToMap(value) {
 
@@ -8465,7 +9056,6 @@ function getLeaveMapToString(value) {
     return JSON.stringify(mapToObj(map_value));
 }
 
-
 // return <employeeID:< date: [value_set]>>
 function getRoasterStringToMap(roster_string) {
 
@@ -8489,6 +9079,7 @@ function getRoasterStringToMap(roster_string) {
             // console.log(value_map);
 
             for (let s of st) {
+                console.log(s);
                 set.add(s);
             }
 
@@ -8540,9 +9131,9 @@ function getRoasterDBDecoder(roster_map, shift_starting_time_map) {
             for (let shift of value1) {
                 if (isFirst) {
                     isFirst = false;
-                    shift_st = shift_starting_time_map.get(shift.split("_")[0])+"_"+shift.split("_")[0]+"_"+shift.split("_")[1];
+                    shift_st = shift_starting_time_map.get(shift.split("_")[0]) + "_" + shift.split("_")[0] + "_" + shift.split("_")[1];
                 } else {
-                    shift_st += "#" + shift_starting_time_map.get(shift.split("_")[0])+"_"+shift.split("_")[0]+"_"+shift.split("_")[1];
+                    shift_st += "#" + shift_starting_time_map.get(shift.split("_")[0]) + "_" + shift.split("_")[0] + "_" + shift.split("_")[1];
                 }
 
             }
@@ -8569,7 +9160,7 @@ async function compareShiftAndRoasterDB(hospital_ID_path, starting_time, ending_
     try {
         await getRostrAndLeaveMap(hospital_ID_path, starting_time, ending_time, unit_id);
 
-         let list = get_Paramiters_with_conditions(starting_time, starting_time);
+        let list = get_Paramiters_with_conditions(starting_time, starting_time);
 
         // if(list.length > 0 ){
         //     console.log("size : "+list.length );
@@ -8600,7 +9191,7 @@ async function compareShiftAndRoasterDB(hospital_ID_path, starting_time, ending_
                     // console.log(value);
 
 
-                    let month_year = ""+parseInt(date / 100);
+                    let month_year = "" + parseInt(date / 100);
                     let employee_map = roster_map.get(month_year);
                     let date_map = employee_map.get(employee_id);
                     let set_roster = date_map.get("" + date);
@@ -8705,31 +9296,31 @@ async function compareShiftAndRoasterDB(hospital_ID_path, starting_time, ending_
 
 }
 
-function getTimeStamp(Date, Time){
-    let year =parseInt( parseInt( Date )/10000);
-    let month = parseInt((parseInt( Date ) - (year*10000))/100);
-    let day =  parseInt((parseInt( Date ) - parseInt((year*100 + month) *100)));
+function getTimeStamp(Date, Time) {
+    let year = parseInt(parseInt(Date) / 10000);
+    let month = parseInt((parseInt(Date) - (year * 10000)) / 100);
+    let day = parseInt((parseInt(Date) - parseInt((year * 100 + month) * 100)));
 
 
-    let hours = parseInt(parseInt(Time)/100);
-    let minutes =parseInt(Time)-parseInt( hours*100);
+    let hours = parseInt(parseInt(Time) / 100);
+    let minutes = parseInt(Time) - parseInt(hours * 100);
 
-    if(month < 10){
-        month = "0"+month;
+    if (month < 10) {
+        month = "0" + month;
     }
-    if(day < 10){
-        day = "0"+day;
+    if (day < 10) {
+        day = "0" + day;
     }
-    if(hours < 10){
-        hours = "0"+hours;
+    if (hours < 10) {
+        hours = "0" + hours;
     }
-    if(minutes < 10){
-        minutes = "0"+minutes;
+    if (minutes < 10) {
+        minutes = "0" + minutes;
     }
 
 
 
-    return year+"-"+month+"-"+day+"T"+hours+":"+minutes+":00.000";
+    return year + "-" + month + "-" + day + "T" + hours + ":" + minutes + ":00.000";
 
 }
 

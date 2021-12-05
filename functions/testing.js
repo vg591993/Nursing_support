@@ -124,4 +124,209 @@ function utf8_to_b64( str ) {
     return Buffer.from(str, 'base64').toString();
   }
 
-getbse64("DataToBase64");
+//getbse64("DataToBase64");
+
+let shift_duration_map = 'N:720,D:360,E:360,DR:360,RB:360,DN:720,BS:510,GS:480,BL:510,TF:510,TA:510';
+let shift_starting_time = '3=1800_Night;1=0600_Morning;2=1200_Afternoon;DR=0800_DR;RB=1400_RB;DN=2000_DN;BS=0900_BS;GS=0900_GS;BL=1000_BL;TF=1130_TF;TA=0800_TA';
+let date_map = new Map();
+
+
+let set = new Set();
+set.add("3_J_N");
+date_map.set("1", set);
+
+set = new Set();
+set.add("1_S_N");
+date_map.set("2", set);
+
+set = new Set();
+set.add("1_J_N");
+date_map.set("3", set);
+
+set = new Set();
+set.add("1_J_N");
+date_map.set("4", set);
+
+set = new Set();
+set.add("Ykjffj_J_N");
+set.add("X_J_N");
+
+date_map.set("5", set);
+
+
+function comapre(
+    shift_duration_map, 
+    shift_starting_time, 
+    number_of_empty_slot, 
+    seniority_level,  
+    requerd_shift_id, 
+    date_shift_map
+    ){
+    
+    let shift = shift_starting_time.split(";");
+
+    let shift_duration = shift_duration_map.split(",");
+
+    let id_duration = new Map();
+    let id_startingtime = new Map();
+
+    for(let i  = 0; i < shift.length; i++){
+        let id = shift[i].split("=")[0];
+        let startin_time = shift[i].split("=")[1].split("_")[0];
+
+        let hour =parseInt(startin_time.substr(0,2));
+        let minuts = parseInt(startin_time.substr(2,4));
+
+        console.log(hour+" : "+ minuts);
+
+        id_startingtime.set(id, (hour*60+minuts));
+    }
+
+    for(let i  = 0; i < shift_duration.length; i++){
+        let id = shift_duration[i].split(":")[0];
+        let duration = parseInt(shift_duration[i].split(":")[1]);
+
+        id_duration.set(id, duration);
+    }
+
+    let ending_minuts = new Map();
+
+    if(  shift_duration.length == shift.length){
+        for(let [id, starting_time]  of id_startingtime){
+            
+            let duration = 0
+            if(id == '1'){
+                 duration = id_duration.get('D');
+                 ending_minuts.set('1', (duration+starting_time));
+            }else if(id == '2'){
+                 duration = id_duration.get('E');
+                 ending_minuts.set('2', (duration+starting_time));
+            }else if(id == '3'){
+                 duration = id_duration.get('N');
+                 ending_minuts.set('3', (duration+starting_time));
+            }else{
+                 duration = id_duration.get(id);
+                 ending_minuts.set(id, (duration+starting_time));
+            }
+
+            
+            
+        }
+
+    }
+    
+
+    console.log("id_startingtime: ",id_startingtime);
+    console.log("ending_minuts: ",ending_minuts);
+    console.log("id_duration: ",id_duration);
+
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+//     let overlapped_by_duration = new Map();
+
+//     const req_starting_time = id_startingtime.get(requerd_shift_id);
+//     const req_duration = id_duration.get(requerd_shift_id);
+//     const req_ending_time = ending_minuts.get(requerd_shift_id);
+    
+
+//     id_duration.set("1", id_duration.get("D"));
+//     id_duration.set("2", id_duration.get("E"));
+//     id_duration.set("3", id_duration.get("N"));
+
+    
+//     id_duration.delete("D");
+//     id_duration.delete("E");
+//     id_duration.delete("N");
+
+//     for([id, value] of id_startingtime){
+        
+//         if(value == req_starting_time){
+
+//             if(req_ending_time >= ending_minuts.get(id)){
+//                 overlapped_by_duration.set(id, id_duration.get(id));
+//             }else{
+//                 overlapped_by_duration.set(id, req_duration);
+//             }
+//         }else if(value < req_starting_time){
+
+//              if(req_ending_time.get(id) > req_starting_time){
+//                 overlapped_by_duration.set(id, (req_ending_time.get(id) - req_starting_time));
+//              }
+
+//         }else if (value > req_starting_time){
+
+//             if(value < req_ending_time){
+//                 overlapped_by_duration.set(id, ( req_ending_time - value ));
+//              }
+//         }
+
+//     }
+
+//     let shorted_overlapped_by_duration = shortMapByValue(overlapped_by_duration);
+//     console.log("shorted_overlapped_by_duration : ",shorted_overlapped_by_duration);
+
+// ////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+    if(number_of_empty_slot > 0){
+
+        let req_shift_strting_day_minute = id_startingtime.get(requerd_shift_id);
+        let req_shift_ending_day_minute = ending_minuts.get(requerd_shift_id);
+
+        let checked_shift = new Set();
+        for(let [emp_id, set_value] of date_shift_map){
+            for(let day_value of set_value){
+                let id = day_value.split("_")[0];
+                let seniority = day_value.split("_")[1];
+
+                let strting_time_this_shift = id_startingtime.get(id);
+                let ending_time_this_shift = id_startingtime.get(id);
+
+                if((number_of_empty_slot <= 0) && (seniority == seniority_level)){
+
+                    if(!checked_shift.has()){
+                        if(req_shift_strting_day_minute >= strting_time_this_shift){
+                            if(req_shift_ending_day_minute <= ending_time_this_shift){
+                                checked_shift.add(emp_id+"_"+day_value);
+                                number_of_empty_slot--;
+                            }
+                        }else{
+
+                        }
+                    }
+                }
+                
+            }   
+        }
+
+
+    }
+
+
+    return number_of_empty_slot;
+}
+
+
+
+function shortMapByValue(map) {
+
+    map[Symbol.iterator] = function* () {
+        yield* [...this.entries()].sort((a, b) => b[1] - a[1]);
+    }
+
+    // for (let [key, value] of map){
+    //     //console.log(key + ' ' +value);
+    // }
+
+    ////console.log([...map]);
+    ////console.log([...map.entries()]);
+
+    return map;
+
+}
+
+
+let i = comapre(shift_duration_map, shift_starting_time, 2, "S","1",date_map);
+
+console.log(i);
